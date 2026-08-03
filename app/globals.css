@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FFFDF5;
+  --foreground: #1E293B;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #8B5CF6;
+  --accent-foreground: #FFFFFF;
+  --secondary: #F472B6;
+  --tertiary: #FBBF24;
+  --quaternary: #34D399;
+  --border: #1E293B;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-quaternary: var(--quaternary);
+  --color-border: var(--border);
+  
+  --font-heading: var(--font-jakarta), sans-serif;
+  --font-body: var(--font-jakarta), sans-serif;
+  --font-mono: var(--font-jetbrains), monospace;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Custom Utilities for Playful Geometric Hard Shadows & Textures */
+.shadow-pop {
+  box-shadow: 4px 4px 0px 0px #1E293B;
+}
+
+.shadow-pop-sm {
+  box-shadow: 2px 2px 0px 0px #1E293B;
+}
+
+.shadow-pop-lg {
+  box-shadow: 6px 6px 0px 0px #1E293B;
+}
+
+.shadow-pop-xl {
+  box-shadow: 8px 8px 0px 0px #1E293B;
+}
+
+.shadow-pop-pink {
+  box-shadow: 6px 6px 0px 0px #F472B6;
+}
+
+.shadow-pop-violet {
+  box-shadow: 6px 6px 0px 0px #8B5CF6;
+}
+
+.shadow-pop-yellow {
+  box-shadow: 6px 6px 0px 0px #FBBF24;
+}
+
+.shadow-pop-mint {
+  box-shadow: 6px 6px 0px 0px #34D399;
+}
+
+/* Dot Grid Pattern */
+.bg-dot-pattern {
+  background-image: radial-gradient(#1E293B 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+.bg-dot-pattern-light {
+  background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+/* Stripe Pattern */
+.bg-stripe-pattern {
+  background: repeating-linear-gradient(
+    45deg,
+    #F1F5F9,
+    #F1F5F9 10px,
+    #FFFDF5 10px,
+    #FFFDF5 20px
+  );
+}
+
+/* Custom Speech Bubble Radius */
+.radius-bubble {
+  border-radius: 24px 24px 24px 0px;
+}
+
+.radius-arch {
+  border-radius: 999px 999px 24px 24px;
+}
+
+/* Smooth Wiggle Animation Keyframes */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg); }
+  75% { transform: rotate(2deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 2s ease-in-out infinite;
 }
