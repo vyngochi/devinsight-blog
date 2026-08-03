@@ -36,6 +36,30 @@ export const metadata: Metadata = {
     locale: "vi_VN",
     type: "website",
   },
+  icons: {
+    icon: [
+      {
+        url: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+      { url: "/Brand/Logo.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/Brand/Logo.png",
+    apple: [
+      {
+        url: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

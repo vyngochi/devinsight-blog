@@ -87,7 +87,7 @@ export function LatestPosts() {
             <Badge color="pink" className="font-mono">
               MỚI CẬP NHẬT
             </Badge>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-[#1E293B] sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-[#1E293B] sm:text-3xl">
               Bài viết mới để học và làm tốt hơn mỗi ngày.
             </h2>
           </div>
@@ -160,11 +160,7 @@ export function LatestPosts() {
         </div>
         <div className="mt-12 text-center">
           <Link href="/posts">
-            <Button
-              variant="outline"
-              size="lg"
-              icon={<Sparkles className="w-5 h-5 text-[#8B5CF6]" />}
-            >
+            <Button variant="outline" size="lg">
               Xem tất cả bài viết
             </Button>
           </Link>

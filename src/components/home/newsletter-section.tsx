@@ -17,6 +17,7 @@ export function NewsletterSection() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <StickerCard
           shadowColor="pink"
+          hoverWiggle={false}
           bg="bg-white"
           className="flex flex-col items-center gap-6 border-4 p-8 text-center sm:p-12"
         >
@@ -24,7 +25,7 @@ export function NewsletterSection() {
             NHẬN BẢN TIN DEVINSIGHT
           </Badge>
           <h2 className="max-w-2xl text-3xl font-extrabold tracking-tight text-[#1E293B] sm:text-4xl">
-            Mỗi tuần một vài nội dung đáng đọc, gửi thẳng vào hộp thư.
+            Đăng ký nhận bản tin mới nhất từ DevInsight
           </h2>
           <p className="max-w-xl leading-relaxed text-[#64748B]">
             Nhận bài hướng dẫn mới, tài nguyên chọn lọc và điểm tin công nghệ.

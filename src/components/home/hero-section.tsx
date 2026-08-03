@@ -11,10 +11,13 @@ export function HeroSection() {
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-7 flex flex-col items-start gap-6">
             <Badge color="violet" className="font-mono">
-              BLOG KỸ THUẬT DÀNH CHO SINH VIÊN
+              BLOG KỸ THUẬT DÀNH NGƯỜI LẬP TRÌNH
             </Badge>
-            <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tight text-[#1E293B] sm:text-5xl lg:text-6xl">
-              Chia sẻ kiến thức lập trình "mì ăn liền"
+            <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-[#1E293B] sm:text-5xl lg:text-6xl">
+              Chia sẻ kiến thức lập trình{" "}
+              <span className="relative inline-block rounded-xl border-2 border-[#1E293B] bg-[#FBBF24] px-3 py-1 text-[#1E293B] shadow-pop-sm -rotate-1">
+                mì ăn liền
+              </span>
             </h1>
             <p className="max-w-2xl text-lg font-medium leading-relaxed text-[#64748B] sm:text-xl">
               DevInsight chia sẻ kiến thức nền tảng, hướng dẫn thực hành, tin
@@ -46,11 +49,8 @@ export function HeroSection() {
               className="p-6 sm:p-8 border-4"
             >
               <div className="flex items-center justify-between border-b-2 border-[#1E293B] pb-4">
-                <span className="font-mono text-xs font-bold text-[#64748B]">
-                  BẮT ĐẦU TỪ ĐÂY
-                </span>
                 <span className="rounded-full bg-[#34D399] px-3 py-1 text-xs font-bold text-[#1E293B]">
-                  MIỄN PHÍ
+                  ĐỌC MIỄN PHÍ
                 </span>
               </div>
               <div className="mt-6 space-y-4">
@@ -60,10 +60,11 @@ export function HeroSection() {
                   </div>
                   <div>
                     <h2 className="font-extrabold text-[#1E293B]">
-                      Học tập có lộ trình
+                      Đọc kiến thức mới
                     </h2>
                     <p className="mt-1 text-sm leading-relaxed text-[#64748B]">
-                      Hướng dẫn, video và mẹo nhanh để bạn học đều mỗi ngày.
+                      Tổng hợp bài viết mới, cập nhật xu hướng và chia sẻ kiến
+                      thức lập trình.
                     </p>
                   </div>
                 </div>
@@ -73,7 +74,7 @@ export function HeroSection() {
                   </div>
                   <div>
                     <h2 className="font-extrabold text-[#1E293B]">
-                      Code có ngữ cảnh
+                      Code minh hoạ
                     </h2>
                     <p className="mt-1 text-sm leading-relaxed text-[#64748B]">
                       Ví dụ nhỏ, giải thích rõ và gợi ý cách tự mở rộng.
@@ -86,11 +87,10 @@ export function HeroSection() {
                   </div>
                   <div>
                     <h2 className="font-extrabold text-[#1E293B]">
-                      Theo dõi điều đáng biết
+                      Không bị bỏ lại
                     </h2>
                     <p className="mt-1 text-sm leading-relaxed text-[#64748B]">
-                      Chọn lọc tin và xu hướng công nghệ đáng để sinh viên quan
-                      tâm.
+                      Tổng hợp tin tức và xu hướng công nghệ cho đọc giả.
                     </p>
                   </div>
                 </div>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, Terminal, Cpu } from "lucide-react";
 
 export function Footer() {
@@ -16,25 +17,21 @@ export function Footer() {
           {/* Column 1: Brand Info */}
           <div className="md:col-span-5 flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#FBBF24] border-2 border-white shadow-pop-sm flex items-center justify-center text-[#1E293B] font-extrabold text-xl">
-                DI
-              </div>
+              <Image
+                src="/Brand/Logo.png"
+                alt="DevInsight Logo"
+                width={40}
+                height={40}
+                className="w-10 h-10 rounded-xl border-2 border-white shadow-pop-sm object-cover"
+              />
               <span className="font-extrabold text-2xl tracking-tight text-white">
                 DevInsight<span className="text-[#FBBF24]">.io.vn</span>
               </span>
             </div>
             <p className="text-slate-300 text-sm leading-relaxed max-w-md">
-              Blog kỹ thuật do sinh viên xây dựng, nơi chia sẻ kiến thức lập trình,
-              tài nguyên học tập, tin công nghệ và trải nghiệm làm dự án.
+              Blog kỹ thuật do sinh viên xây dựng, nơi chia sẻ kiến thức lập
+              trình, tài nguyên học tập, tin công nghệ và trải nghiệm làm dự án.
             </p>
-            <div className="flex items-center gap-3 pt-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-xs font-mono font-bold text-[#34D399] border border-slate-700">
-                <Terminal className="w-3.5 h-3.5" /> Next.js App Router
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-xs font-mono font-bold text-[#F472B6] border border-slate-700">
-                <Cpu className="w-3.5 h-3.5" /> Neon PostgreSQL
-              </span>
-            </div>
           </div>
 
           {/* Column 2: Navigation Links */}
@@ -44,22 +41,34 @@ export function Footer() {
             </h4>
             <ul className="flex flex-col gap-2 text-sm text-slate-300">
               <li>
-                <Link href="/posts" className="hover:text-[#FBBF24] transition-colors">
+                <Link
+                  href="/posts"
+                  className="hover:text-[#FBBF24] transition-colors"
+                >
                   Hướng dẫn cho người mới
                 </Link>
               </li>
               <li>
-                <Link href="/posts" className="hover:text-[#FBBF24] transition-colors">
+                <Link
+                  href="/posts"
+                  className="hover:text-[#FBBF24] transition-colors"
+                >
                   Mẹo nhanh khi làm dự án
                 </Link>
               </li>
               <li>
-                <Link href="/posts" className="hover:text-[#FBBF24] transition-colors">
+                <Link
+                  href="/posts"
+                  className="hover:text-[#FBBF24] transition-colors"
+                >
                   Tài nguyên học lập trình
                 </Link>
               </li>
               <li>
-                <Link href="/posts" className="hover:text-[#FBBF24] transition-colors">
+                <Link
+                  href="/posts"
+                  className="hover:text-[#FBBF24] transition-colors"
+                >
                   Tin và góc nhìn công nghệ
                 </Link>
               </li>
@@ -73,12 +82,18 @@ export function Footer() {
             </h4>
             <ul className="flex flex-col gap-2 text-sm text-slate-300">
               <li>
-                <Link href="/about" className="hover:text-[#F472B6] transition-colors">
+                <Link
+                  href="/about"
+                  className="hover:text-[#F472B6] transition-colors"
+                >
                   Về DevInsight
                 </Link>
               </li>
               <li>
-                <Link href="/rss.xml" className="hover:text-[#F472B6] transition-colors">
+                <Link
+                  href="/rss.xml"
+                  className="hover:text-[#F472B6] transition-colors"
+                >
                   RSS Feed bài viết mới
                 </Link>
               </li>
@@ -100,7 +115,16 @@ export function Footer() {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <p>© {new Date().getFullYear()} DevInsight. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
-            Được làm với <Heart className="w-3.5 h-3.5 text-[#F472B6] fill-current" /> cho cộng đồng học lập trình Việt Nam.
+            Được thực hiện bởi{" "}
+            <Link
+              href="https://github.com/vyngochi"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#F472B6]"
+            >
+              Ngô Chí Vỹ
+            </Link>{" "}
+            dành cho cộng đồng học lập trình Việt Nam.
           </p>
         </div>
       </div>
