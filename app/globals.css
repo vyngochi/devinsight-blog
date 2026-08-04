@@ -160,3 +160,59 @@ h1, h2, h3, h4, h5, h6 {
 .code-theme .token.variable {
   color: #7DD3FC;
 }
+
+.community-editor-content p.is-editor-empty:first-child::before {
+  color: #94A3B8;
+  content: "Mô tả vấn đề của bạn...";
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.community-editor-content,
+.community-rich-content {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.community-editor-content h2,
+.community-rich-content h2 { margin-top: 1.25rem; font-size: 1.25rem; font-weight: 800; color: #1E293B; }
+.community-editor-content h3,
+.community-rich-content h3 { margin-top: 1rem; font-size: 1.125rem; font-weight: 800; color: #1E293B; }
+.community-editor-content p,
+.community-rich-content p { margin-top: 0.75rem; }
+.community-editor-content ul,
+.community-rich-content ul,
+.community-editor-content ol,
+.community-rich-content ol { margin-top: 0.75rem; padding-left: 1.5rem; }
+.community-editor-content ul,
+.community-rich-content ul { list-style: disc; }
+.community-editor-content ol,
+.community-rich-content ol { list-style: decimal; }
+
+.community-editor-content pre,
+.community-rich-content pre {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border: 2px solid #1E293B;
+  border-radius: 0.75rem;
+  background: #111827;
+  padding: 1rem;
+  color: #E2E8F0;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.community-editor-content code,
+.community-rich-content code {
+  border-radius: 0.25rem;
+  background: #F1F5F9;
+  padding: 0.1rem 0.25rem;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 0.9em;
+  color: #7C3AED;
+}
+
+.community-editor-content pre code,
+.community-rich-content pre code { background: transparent; padding: 0; color: inherit; }

@@ -15,9 +15,11 @@ export interface PostMetadata {
   category: PostCategory;
   badgeColor: BadgeColor;
   publishedAt: string;
+  updatedAt?: string;
   readingTime: string;
   tags: string[];
   author: PostAuthor;
+  coverImage?: string;
   featured?: boolean;
 }
 

@@ -14,15 +14,15 @@ export function HeroSection() {
               BLOG KỸ THUẬT DÀNH NGƯỜI LẬP TRÌNH
             </Badge>
             <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-[#1E293B] sm:text-5xl lg:text-6xl">
-              Chia sẻ kiến thức lập trình{" "}
+              Thông tin công nghệ{" "}
               <span className="relative inline-block rounded-xl border-2 border-[#1E293B] bg-[#FBBF24] px-3 py-1 text-[#1E293B] shadow-pop-sm -rotate-1">
                 mì ăn liền
-              </span>
+              </span>{" "}
+              <br /> cùng DevInsight
             </h1>
             <p className="max-w-2xl text-lg font-medium leading-relaxed text-[#64748B] sm:text-xl">
-              DevInsight chia sẻ kiến thức nền tảng, hướng dẫn thực hành, tin
-              công nghệ và tài nguyên hữu ích cho hành trình trở thành kỹ sư
-              phần mềm.
+              DevInsight - nơi chia sẻ các kiến thức lập trình hữu ích, tin tức
+              công nghệ và đặt câu hỏi với cộng đồng.
             </p>
             <div className="flex flex-wrap items-center gap-4 pt-1">
               <Link href="/posts">
@@ -32,11 +32,6 @@ export function HeroSection() {
                   icon={<ArrowRight className="w-5 h-5" strokeWidth={2.5} />}
                 >
                   Đọc bài mới nhất
-                </Button>
-              </Link>
-              <Link href="#chu-de">
-                <Button variant="outline" size="lg">
-                  Khám phá chủ đề
                 </Button>
               </Link>
             </div>
@@ -74,10 +69,11 @@ export function HeroSection() {
                   </div>
                   <div>
                     <h2 className="font-extrabold text-[#1E293B]">
-                      Code minh hoạ
+                      Đặt câu hỏi
                     </h2>
                     <p className="mt-1 text-sm leading-relaxed text-[#64748B]">
-                      Ví dụ nhỏ, giải thích rõ và gợi ý cách tự mở rộng.
+                      Đặt câu hỏi và nhận được câu trả lời từ cộng đồng công
+                      nghệ
                     </p>
                   </div>
                 </div>
@@ -87,10 +83,10 @@ export function HeroSection() {
                   </div>
                   <div>
                     <h2 className="font-extrabold text-[#1E293B]">
-                      Không bị bỏ lại
+                      Tài nguyên hữu ích
                     </h2>
                     <p className="mt-1 text-sm leading-relaxed text-[#64748B]">
-                      Tổng hợp tin tức và xu hướng công nghệ cho đọc giả.
+                      Tổng hợp các tài liệu hữu ích cho độc giả
                     </p>
                   </div>
                 </div>

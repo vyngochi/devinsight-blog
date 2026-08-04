@@ -41,6 +41,11 @@ export function getSystemConfigurationStatus() {
       ),
     },
     {
+      label: "Email gộp Cộng đồng",
+      description: "CRON_SECRET bảo vệ lịch gửi phản hồi đã gom",
+      configured: Boolean(process.env.CRON_SECRET),
+    },
+    {
       label: "Google OAuth",
       description: "Đăng nhập bằng Google",
       configured: Boolean(

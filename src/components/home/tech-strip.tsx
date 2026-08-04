@@ -3,12 +3,6 @@ import { BookOpen, Compass, FolderOpen, UsersRound } from "lucide-react";
 
 const topics = [
   {
-    name: "Học tập",
-    description: "Video, hướng dẫn, mẹo nhanh",
-    icon: BookOpen,
-    color: "bg-[#8B5CF6]",
-  },
-  {
     name: "Khám phá",
     description: "Công nghệ và góc nhìn mới",
     icon: Compass,

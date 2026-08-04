@@ -49,6 +49,9 @@ model posts {
   content_mdx      String
   reading_time_min Int          @default(5)
   cover_image      String?
+  author_name      String?      @db.VarChar(120)
+  author_role      String?      @db.VarChar(160)
+  badge_color      String       @default("violet") @db.VarChar(20)
   status           post_status  @default(DRAFT)
   view_count       Int          @default(0)
   like_count       Int          @default(0)
@@ -87,19 +90,129 @@ model tags {
 }
 
 model User {
-  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name          String?    @db.VarChar(255)
-  email         String     @unique @db.VarChar(255)
-  emailVerified DateTime?  @map("email_verified") @db.Timestamptz(6)
-  image         String?    @map("avatar_url")
-  role          user_role  @default(USER)
-  created_at    DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime   @default(now()) @db.Timestamptz(6)
-  accounts      Account[]
-  sessions      Session[]
-  comments      comments[]
+  id                             String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                           String?                          @db.VarChar(255)
+  email                          String                           @unique @db.VarChar(255)
+  emailVerified                  DateTime?                        @map("email_verified") @db.Timestamptz(6)
+  image                          String?                          @map("avatar_url")
+  role                           user_role                        @default(USER)
+  created_at                     DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                         @default(now()) @db.Timestamptz(6)
+  accounts                       Account[]
+  sessions                       Session[]
+  comments                       comments[]
+  community_questions            community_questions[]            @relation("community_question_author")
+  community_answers              community_answers[]              @relation("community_answer_author")
+  community_reports              community_reports[]              @relation("community_reporter")
+  resolved_community_reports     community_reports[]              @relation("community_report_resolver")
+  community_notification_digests community_notification_digests[]
+  uploaded_resources             resources[]
 
   @@map("users")
+}
+
+model community_questions {
+  id           String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug         String                           @unique @db.VarChar(255)
+  title        String                           @db.VarChar(220)
+  topic        String                           @db.VarChar(60)
+  content_json Json
+  content_text String
+  is_anonymous Boolean                          @default(false)
+  status       community_content_status         @default(PUBLISHED)
+  author_id    String                           @db.Uuid
+  created_at   DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                         @default(now()) @db.Timestamptz(6)
+  author       User                             @relation("community_question_author", fields: [author_id], references: [id], onDelete: Cascade)
+  answers      community_answers[]
+  reports      community_reports[]
+  digests      community_notification_digests[]
+
+  @@index([status, created_at(sort: Desc)], map: "idx_community_questions_status_created")
+  @@index([author_id], map: "idx_community_questions_author")
+}
+
+model community_answers {
+  id           String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_id  String                   @db.Uuid
+  parent_id    String?                  @db.Uuid
+  content_json Json
+  content_text String
+  is_anonymous Boolean                  @default(false)
+  status       community_content_status @default(PUBLISHED)
+  author_id    String                   @db.Uuid
+  created_at   DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                 @default(now()) @db.Timestamptz(6)
+  question     community_questions      @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  parent       community_answers?       @relation("community_answer_replies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies      community_answers[]      @relation("community_answer_replies")
+  author       User                     @relation("community_answer_author", fields: [author_id], references: [id], onDelete: Cascade)
+  reports      community_reports[]
+
+  @@index([question_id, status, created_at], map: "idx_community_answers_question_status")
+  @@index([parent_id], map: "idx_community_answers_parent")
+  @@index([author_id], map: "idx_community_answers_author")
+}
+
+model community_reports {
+  id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_id    String?                 @db.Uuid
+  answer_id      String?                 @db.Uuid
+  reporter_id    String                  @db.Uuid
+  reason         String                  @db.VarChar(120)
+  detail         String?                 @db.VarChar(500)
+  status         community_report_status @default(OPEN)
+  resolved_by_id String?                 @db.Uuid
+  resolved_at    DateTime?               @db.Timestamptz(6)
+  created_at     DateTime                @default(now()) @db.Timestamptz(6)
+  question       community_questions?    @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  answer         community_answers?      @relation(fields: [answer_id], references: [id], onDelete: Cascade)
+  reporter       User                    @relation("community_reporter", fields: [reporter_id], references: [id], onDelete: Cascade)
+  resolved_by    User?                   @relation("community_report_resolver", fields: [resolved_by_id], references: [id], onDelete: SetNull)
+
+  @@unique([reporter_id, question_id], map: "uq_community_reporter_question")
+  @@unique([reporter_id, answer_id], map: "uq_community_reporter_answer")
+  @@index([status, created_at], map: "idx_community_reports_status_created")
+}
+
+model community_notification_digests {
+  id           String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_id  String                        @db.Uuid
+  recipient_id String                        @db.Uuid
+  answer_count Int                           @default(0)
+  send_after   DateTime                      @db.Timestamptz(6)
+  status       community_notification_status @default(PENDING)
+  sent_at      DateTime?                     @db.Timestamptz(6)
+  created_at   DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                      @default(now()) @db.Timestamptz(6)
+  question     community_questions           @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  recipient    User                          @relation(fields: [recipient_id], references: [id], onDelete: Cascade)
+
+  @@unique([question_id, recipient_id], map: "uq_community_digest_question_recipient")
+  @@index([status, send_after], map: "idx_community_digests_status_send_after")
+}
+
+model resources {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug           String          @unique @db.VarChar(255)
+  title          String          @db.VarChar(220)
+  description    String
+  topic          String          @db.VarChar(60)
+  file_key       String          @unique @db.VarChar(600)
+  file_name      String          @db.VarChar(255)
+  mime_type      String          @db.VarChar(120)
+  file_size      Int
+  status         resource_status @default(DRAFT)
+  download_count Int             @default(0)
+  published_at   DateTime?       @db.Timestamptz(6)
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @db.Timestamptz(6)
+  uploaded_by_id String          @db.Uuid
+  uploaded_by    User            @relation(fields: [uploaded_by_id], references: [id], onDelete: Restrict)
+
+  @@index([status, published_at(sort: Desc)], map: "idx_resources_status_published_at")
+  @@index([topic, status], map: "idx_resources_topic_status")
+  @@index([uploaded_by_id], map: "idx_resources_uploaded_by")
 }
 
 model Account {
@@ -149,4 +262,28 @@ enum post_status {
 enum user_role {
   USER
   ADMIN
+}
+
+enum community_content_status {
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
+enum community_report_status {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum community_notification_status {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum resource_status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }

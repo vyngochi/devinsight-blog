@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Clock, Eye, GraduationCap, UserRound } from "lucide-react";
+import { ArrowRight, Clock, Eye, UserRound } from "lucide-react";
 import type { PostListItem as PostListItemData } from "@/features/content/server/post-listing.service";
 import { Badge } from "@/components/ui/button";
 

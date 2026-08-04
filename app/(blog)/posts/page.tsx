@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Search, X } from "lucide-react";
 import { PostListItem } from "@/components/posts/post-list-item";
 import { getPostListing } from "@/features/content/server/post-listing.service";
@@ -29,6 +30,30 @@ function createPostsHref(category: string | undefined, query: string) {
   if (query) params.set("q", query);
   const search = params.toString();
   return search ? `/posts?${search}` : "/posts";
+}
+
+export async function generateMetadata({
+  searchParams,
+}: PostsPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const hasFilters = Boolean(
+    getSingleSearchParam(params.category) || getSingleSearchParam(params.q),
+  );
+
+  return {
+    title: "Tất cả bài viết",
+    description:
+      "Khám phá hướng dẫn lập trình, mẹo thực hành và tài nguyên dành cho sinh viên Kỹ thuật phần mềm.",
+    alternates: { canonical: "/posts" },
+    robots: hasFilters ? { index: false, follow: true } : undefined,
+    openGraph: {
+      title: "Tất cả bài viết",
+      description:
+        "Khám phá hướng dẫn lập trình, mẹo thực hành và tài nguyên dành cho sinh viên Kỹ thuật phần mềm.",
+      url: "/posts",
+      type: "website",
+    },
+  };
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
