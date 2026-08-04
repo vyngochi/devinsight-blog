@@ -1,0 +1,121 @@
+export const metadata = {
+  slug: "git-co-ban-cho-sinh-vien",
+  title: "6 lệnh Git cơ bản và quy trình sử dụng Git trong làm việc nhóm",
+  excerpt:
+    "Nắm các lệnh Git quan trọng, cách tạo nhánh, mở Pull Request và xử lý những tình huống dễ gây xung đột khi làm đồ án nhóm.",
+  category: "Mẹo nhanh",
+  badgeColor: "pink",
+  publishedAt: "2026-07-30",
+  readingTime: "9 phút",
+  tags: ["Git", "GitHub", "Làm việc nhóm"],
+  author: {
+    name: "DevInsight Team",
+    role: "Biên soạn bởi sinh viên Kỹ thuật phần mềm",
+  },
+  featured: true,
+};
+
+## Trước khi bắt đầu, cả nhóm cần thống nhất gì?
+
+Trước buổi code đầu tiên, hãy thống nhất repository chính, quy tắc đặt tên nhánh và người review Pull Request. Chỉ cần ba điều này, nhóm đã tránh được rất nhiều lần đẩy nhầm code lên `main`.
+
+<Callout type="note">
+
+**Quy tắc đơn giản nên dùng:**
+
+- Không code trực tiếp trên nhánh `main`.
+- Mỗi chức năng hoặc bug fix có một nhánh riêng.
+- Trước khi merge, ít nhất một người khác xem qua Pull Request.
+
+</Callout>
+
+## 6 lệnh Git cơ bản cần nhớ
+
+Bạn không cần học thuộc hàng chục câu lệnh ngay từ đầu. Sáu lệnh dưới đây đủ để bắt đầu làm việc nhóm an toàn.
+
+### 1. `git clone`
+
+Tải bản sao của repository về máy khi bạn mới tham gia dự án.
+
+```
+git clone <repository-url>
+```
+
+### 2. `git status`
+
+Xem những file đã thay đổi, file nào đã được stage và bạn đang đứng ở nhánh nào.
+
+```
+git status
+```
+
+### 3. `git switch -c`
+
+Tạo nhánh mới và chuyển sang nhánh đó để làm một chức năng riêng.
+
+```
+git switch -c feature/ten-chuc-nang
+```
+
+### 4. `git add`
+
+Đưa các thay đổi muốn lưu vào khu vực chuẩn bị commit. Với dự án thật, nên kiểm tra file trước khi add toàn bộ.
+
+```
+git add .
+```
+
+### 5. `git commit`
+
+Lưu một mốc thay đổi có ý nghĩa. Commit nên nhỏ, rõ mục đích và dễ xem lại.
+
+```
+git commit -m "feat: them trang dang nhap"
+```
+
+### 6. `git pull`
+
+Lấy các thay đổi mới nhất từ remote về nhánh hiện tại trước khi bắt đầu hoặc mở Pull Request.
+
+```
+git pull origin main
+```
+
+## Quy trình làm việc nhóm nên áp dụng
+
+Dưới đây là quy trình ngắn, phù hợp với đồ án môn học hoặc dự án nhỏ. Mỗi người chỉ cần lặp lại các bước này khi nhận một đầu việc.
+
+1. **Nhận việc rõ ràng.** Ví dụ: “tạo form đăng nhập”, không phải “làm trang auth”.
+2. **Cập nhật nhánh main trước.** Chuyển về `main` và chạy `git pull origin main` để làm trên phiên bản mới nhất.
+3. **Tạo nhánh theo đầu việc.** Ví dụ `feature/login-form` hoặc `fix/header-mobile`.
+4. **Code và commit từng phần nhỏ.** Sau mỗi phần chạy được, dùng `git status`, `git add` và `git commit`.
+5. **Đẩy nhánh và mở Pull Request.** Đồng đội review, góp ý và chỉ merge khi chức năng ổn.
+
+```
+git switch main
+git pull origin main
+git switch -c feature/login-form
+# code, kiem tra va commit
+git push -u origin feature/login-form
+```
+
+## Nếu gặp conflict thì làm gì?
+
+Conflict không có nghĩa là bạn làm sai. Nó chỉ báo rằng hai người đã sửa cùng một vùng code. Hãy đọc cả hai phiên bản, giữ lại phần đúng, xóa ký hiệu `<<<<<<<`, `=======`, `>>>>>>>`, sau đó chạy lại ứng dụng trước khi commit.
+
+Nếu chưa hiểu đoạn code bị conflict, đừng đoán. Hỏi người đã sửa phần đó hoặc call nhanh 5 phút để cùng quyết định. Cách này nhanh hơn rất nhiều so với tự sửa rồi tạo ra bug mới.
+
+## Checklist trước khi tạo Pull Request
+
+<Callout>
+
+- Đã chạy ứng dụng và kiểm tra chức năng chính.
+- Đã xem lại `git status`, không đẩy file môi trường hoặc file build.
+- Commit message mô tả đúng thay đổi.
+- Mô tả Pull Request ngắn gọn: làm gì, kiểm tra thế nào và cần review phần nào.
+
+</Callout>
+
+## Tóm lại
+
+Git sẽ bớt đáng sợ khi bạn dùng nó thường xuyên và giữ quy trình đơn giản. Hãy bắt đầu với clone, status, switch, add, commit và pull. Sau đó, biến Pull Request thành điểm hẹn để cả nhóm kiểm tra code trước khi đưa vào `main`.

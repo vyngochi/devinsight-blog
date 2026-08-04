@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Terminal, Cpu } from "lucide-react";
 
 export function Footer() {
   return (
@@ -114,7 +113,7 @@ export function Footer() {
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <p>© {new Date().getFullYear()} DevInsight. All rights reserved.</p>
-          <p className="flex items-center gap-1.5">
+          <p className="text-center sm:text-right leading-relaxed">
             Được thực hiện bởi{" "}
             <Link
               href="https://github.com/vyngochi"

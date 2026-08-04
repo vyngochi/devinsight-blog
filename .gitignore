@@ -20,7 +20,7 @@
 # Environment variables
 .env
 .env*
-!.env.example
+.env.example
 
 # IDE & Editor files
 .vscode/*

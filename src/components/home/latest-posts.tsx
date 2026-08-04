@@ -2,78 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Clock, Eye, Sparkles } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { StickerCard } from "@/components/ui/sticker-card";
 import { Button, Badge } from "@/components/ui/button";
-
-interface Post {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  category: string;
-  badgeColor: "violet" | "pink" | "yellow" | "mint";
-  readTime: string;
-  views: string;
-  date: string;
-  featured?: boolean;
-}
-
-const posts: Post[] = [
-  {
-    id: "1",
-    slug: "lo-trinh-hoc-javascript",
-    title: "Lộ trình học JavaScript cho người mới: nên bắt đầu từ đâu?",
-    excerpt:
-      "Một kế hoạch học gọn gàng, từ biến và hàm đến DOM, async/await và cách tự làm dự án nhỏ để kiểm tra kiến thức.",
-    category: "Học tập",
-    badgeColor: "violet",
-    readTime: "7 phút",
-    views: "1.2k",
-    date: "02/08/2026",
-    featured: true,
-  },
-  {
-    id: "2",
-    slug: "git-co-ban-cho-sinh-vien",
-    title: "Git cơ bản cho sinh viên: 6 lệnh cần dùng trong dự án nhóm",
-    excerpt:
-      "Hiểu đúng add, commit, pull, branch và pull request để làm nhóm bớt rối, không còn sợ xung đột code.",
-    category: "Mẹo nhanh",
-    badgeColor: "pink",
-    readTime: "5 phút",
-    views: "986",
-    date: "30/07/2026",
-  },
-  {
-    id: "3",
-    slug: "tai-nguyen-luyen-code",
-    title: "10 tài nguyên miễn phí giúp bạn luyện code có định hướng",
-    excerpt:
-      "Danh sách tài liệu, nền tảng luyện tập và roadmap phù hợp khi bạn muốn học đều nhưng chưa biết chọn nguồn nào.",
-    category: "Tài nguyên",
-    badgeColor: "yellow",
-    readTime: "6 phút",
-    views: "1.5k",
-    date: "26/07/2026",
-  },
-  {
-    id: "4",
-    slug: "tin-cong-nghe-thang-7",
-    title: "Điểm tin công nghệ: những cập nhật lập trình viên nên theo dõi",
-    excerpt:
-      "Tóm tắt ngắn các công cụ, framework và xu hướng nổi bật, kèm góc nhìn về điều gì thật sự đáng để thử.",
-    category: "Khám phá",
-    badgeColor: "mint",
-    readTime: "8 phút",
-    views: "731",
-    date: "22/07/2026",
-  },
-];
+import type { PostSummary } from "@/types/blog";
 
 const categories = ["Tất cả", "Học tập", "Mẹo nhanh", "Tài nguyên", "Khám phá"];
 
-export function LatestPosts() {
+export function LatestPosts({ posts }: { posts: PostSummary[] }) {
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const filteredPosts =
     activeCategory === "Tất cả"
@@ -109,7 +45,7 @@ export function LatestPosts() {
         <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
           {filteredPosts.map((post) => (
             <StickerCard
-              key={post.id}
+              key={post.slug}
               shadowColor={post.badgeColor}
               bg="bg-white"
               className="flex min-h-72 flex-col justify-between p-7 border-4"
@@ -125,7 +61,7 @@ export function LatestPosts() {
                 <div className="flex items-center justify-between gap-3">
                   <Badge color={post.badgeColor}>{post.category}</Badge>
                   <span className="font-mono text-xs font-bold text-[#64748B]">
-                    {post.date}
+                    {post.dateLabel}
                   </span>
                 </div>
                 <Link href={`/posts/${post.slug}`} className="group">
@@ -141,11 +77,7 @@ export function LatestPosts() {
                 <span className="flex gap-4">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4 text-[#8B5CF6]" />
-                    {post.readTime}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-4 h-4 text-[#8B5CF6]" />
-                    {post.views}
+                    {post.readingTime}
                   </span>
                 </span>
                 <Link

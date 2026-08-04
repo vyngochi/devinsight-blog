@@ -114,3 +114,49 @@ h1, h2, h3, h4, h5, h6 {
 .animate-wiggle {
   animation: wiggle 2s ease-in-out infinite;
 }
+
+/* Syntax highlighting for MDX code blocks. */
+.code-theme .token.comment,
+.code-theme .token.prolog,
+.code-theme .token.doctype,
+.code-theme .token.cdata {
+  color: #94A3B8;
+}
+
+.code-theme .token.punctuation,
+.code-theme .token.operator {
+  color: #CBD5E1;
+}
+
+.code-theme .token.property,
+.code-theme .token.tag,
+.code-theme .token.boolean,
+.code-theme .token.number,
+.code-theme .token.constant,
+.code-theme .token.symbol {
+  color: #FBBF24;
+}
+
+.code-theme .token.selector,
+.code-theme .token.attr-name,
+.code-theme .token.string,
+.code-theme .token.char,
+.code-theme .token.builtin,
+.code-theme .token.inserted {
+  color: #6EE7B7;
+}
+
+.code-theme .token.atrule,
+.code-theme .token.attr-value,
+.code-theme .token.keyword {
+  color: #C4B5FD;
+}
+
+.code-theme .token.function,
+.code-theme .token.class-name {
+  color: #F9A8D4;
+}
+
+.code-theme .token.variable {
+  color: #7DD3FC;
+}

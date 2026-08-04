@@ -25,7 +25,7 @@ model comments {
   comments       comments?  @relation("commentsTocomments", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   other_comments comments[] @relation("commentsTocomments")
   posts          posts      @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users          users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([parent_id], map: "idx_comments_parent_id")
   @@index([post_id], map: "idx_comments_post_id")
@@ -42,27 +42,41 @@ model post_tags {
 }
 
 model posts {
-  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug             String      @unique @db.VarChar(255)
-  title            String      @db.VarChar(255)
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug             String       @unique @db.VarChar(255)
+  title            String       @db.VarChar(255)
   excerpt          String
   content_mdx      String
-  reading_time_min Int         @default(5)
+  reading_time_min Int          @default(5)
   cover_image      String?
-  status           post_status @default(DRAFT)
-  view_count       Int         @default(0)
-  like_count       Int         @default(0)
-  published_at     DateTime?   @db.Timestamptz(6)
-  created_at       DateTime    @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime    @default(now()) @db.Timestamptz(6)
-  category_id      String      @db.Uuid
+  status           post_status  @default(DRAFT)
+  view_count       Int          @default(0)
+  like_count       Int          @default(0)
+  published_at     DateTime?    @db.Timestamptz(6)
+  created_at       DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime     @default(now()) @db.Timestamptz(6)
+  category_id      String       @db.Uuid
   comments         comments[]
   post_tags        post_tags[]
-  categories       categories  @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  post_views       post_views[]
+  categories       categories   @relation(fields: [category_id], references: [id], onUpdate: NoAction)
 
   @@index([category_id], map: "idx_posts_category_id")
   @@index([slug], map: "idx_posts_slug")
   @@index([status, published_at(sort: Desc)], map: "idx_posts_status_published_at")
+}
+
+model post_views {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id      String   @db.Uuid
+  visitor_hash String   @db.Char(64)
+  viewed_on    DateTime @db.Date
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  posts        posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, visitor_hash, viewed_on], map: "uq_post_views_daily_visitor")
+  @@index([viewed_on], map: "idx_post_views_viewed_on")
+  @@index([post_id], map: "idx_post_views_post_id")
 }
 
 model tags {
@@ -72,15 +86,58 @@ model tags {
   post_tags post_tags[]
 }
 
-model users {
-  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String?    @db.VarChar(255)
-  email      String     @unique @db.VarChar(255)
-  avatar_url String?
-  role       user_role  @default(USER)
-  created_at DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at DateTime   @default(now()) @db.Timestamptz(6)
-  comments   comments[]
+model User {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String?    @db.VarChar(255)
+  email         String     @unique @db.VarChar(255)
+  emailVerified DateTime?  @map("email_verified") @db.Timestamptz(6)
+  image         String?    @map("avatar_url")
+  role          user_role  @default(USER)
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime   @default(now()) @db.Timestamptz(6)
+  accounts      Account[]
+  sessions      Session[]
+  comments      comments[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 enum post_status {

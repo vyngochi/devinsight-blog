@@ -3,11 +3,23 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Sparkles, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Menu, X, ChevronDown, LayoutDashboard } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { AuthModal } from "@/components/auth/auth-modal";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { data: session } = useSession();
+  const pathname = usePathname();
+  const isActive = (href: string) =>
+    href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const desktopLinkClass = (active: boolean) =>
+    `relative py-1 transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-[#8B5CF6] ${active ? "text-[#8B5CF6] after:w-full" : "after:w-0 hover:text-[#8B5CF6] hover:after:w-full"}`;
+  const mobileLinkClass = (active: boolean) =>
+    `border-b py-2 text-lg font-bold transition-colors ${active ? "border-[#8B5CF6] text-[#8B5CF6]" : "border-[#E2E8F0] text-[#1E293B] hover:text-[#8B5CF6]"}`;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#FFFDF5]/90 backdrop-blur-md border-b-2 border-[#1E293B]">
@@ -38,14 +50,15 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-8 font-bold text-sm text-[#1E293B]">
           <Link
             href="/"
-            className="hover:text-[#8B5CF6] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#8B5CF6]"
+            aria-current={isActive("/") ? "page" : undefined}
+            className={desktopLinkClass(isActive("/"))}
           >
             Trang Chủ
           </Link>
 
           {/* "Học tập" Dropdown Menu */}
           <div className="relative group py-5">
-            <button className="flex items-center gap-1.5 hover:text-[#8B5CF6] transition-colors py-1 cursor-pointer font-bold">
+            <button className={`flex items-center gap-1.5 py-1 font-bold transition-colors ${isActive("/categories") ? "text-[#8B5CF6]" : "hover:text-[#8B5CF6]"}`}>
               <span>Học tập</span>
               <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180 text-[#64748B] group-hover:text-[#8B5CF6]" />
             </button>
@@ -164,19 +177,22 @@ export function Header() {
 
           <Link
             href="/posts"
-            className="hover:text-[#8B5CF6] transition-colors py-1"
+            aria-current={isActive("/posts") ? "page" : undefined}
+            className={desktopLinkClass(isActive("/posts"))}
           >
             Bài Viết
           </Link>
           <Link
             href="/categories"
-            className="hover:text-[#8B5CF6] transition-colors py-1"
+            aria-current={isActive("/categories") ? "page" : undefined}
+            className={desktopLinkClass(isActive("/categories"))}
           >
             Chủ Đề
           </Link>
           <Link
             href="/about"
-            className="hover:text-[#8B5CF6] transition-colors py-1"
+            aria-current={isActive("/about") ? "page" : undefined}
+            className={desktopLinkClass(isActive("/about"))}
           >
             Về DevInsight
           </Link>
@@ -201,6 +217,35 @@ export function Header() {
               Đọc bài mới
             </Button>
           </Link>
+          {session?.user ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                Đăng xuất
+              </Button>
+              {session.user.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  aria-label="Vào trang quản trị"
+                  title="Trang quản trị"
+                  className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#1E293B] bg-[#FBBF24] text-[#1E293B] shadow-pop-sm transition-transform hover:-translate-y-0.5"
+                >
+                  <LayoutDashboard className="h-4 w-4" strokeWidth={2.5} />
+                </Link>
+              )}
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAuthModalOpen(true)}
+            >
+              Đăng nhập
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -225,7 +270,8 @@ export function Header() {
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="font-bold text-lg text-[#1E293B] py-2 border-b border-[#E2E8F0]"
+            aria-current={isActive("/") ? "page" : undefined}
+            className={mobileLinkClass(isActive("/"))}
           >
             Trang Chủ
           </Link>
@@ -281,25 +327,61 @@ export function Header() {
           <Link
             href="/posts"
             onClick={() => setMobileMenuOpen(false)}
-            className="font-bold text-lg text-[#1E293B] py-2 border-b border-[#E2E8F0]"
+            aria-current={isActive("/posts") ? "page" : undefined}
+            className={mobileLinkClass(isActive("/posts"))}
           >
             Tất Cả Bài Viết
           </Link>
           <Link
             href="/categories"
             onClick={() => setMobileMenuOpen(false)}
-            className="font-bold text-lg text-[#1E293B] py-2 border-b border-[#E2E8F0]"
+            aria-current={isActive("/categories") ? "page" : undefined}
+            className={mobileLinkClass(isActive("/categories"))}
           >
             Khám phá chủ đề
           </Link>
           <Link
             href="/about"
             onClick={() => setMobileMenuOpen(false)}
-            className="font-bold text-lg text-[#1E293B] py-2 border-b border-[#E2E8F0]"
+            aria-current={isActive("/about") ? "page" : undefined}
+            className={mobileLinkClass(isActive("/about"))}
           >
             Về DevInsight
           </Link>
           <div className="pt-2 flex flex-col gap-3">
+            {session?.user ? (
+              <>
+                {session.user.role === "ADMIN" && (
+                  <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
+                    <Button
+                      variant="tertiary"
+                      className="w-full"
+                      icon={<LayoutDashboard className="h-4 w-4" />}
+                    >
+                      Trang quản trị
+                    </Button>
+                  </Link>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  Đăng xuất
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setAuthModalOpen(true);
+                }}
+              >
+                Đăng nhập
+              </Button>
+            )}
             <Link href="/posts" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="primary" className="w-full">
                 Khám Phá Bài Viết
@@ -308,6 +390,7 @@ export function Header() {
           </div>
         </div>
       )}
+      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </header>
   );
 }
