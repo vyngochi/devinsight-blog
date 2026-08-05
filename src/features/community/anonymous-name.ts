@@ -1,12 +1,12 @@
 const prefixes = [
-  "Con trỏ",
-  "Bộ nhớ đệm",
-  "Hàm ẩn danh",
-  "Nhánh phát triển",
-  "Biến cục bộ",
-  "Gói dữ liệu",
-  "Mảng động",
-  "Tiến trình",
+  "Quả táo",
+  "Quả cam",
+  "Quả chuối",
+  "Quả lê",
+  "Quả xoài",
+  "Quả măng cụt",
+  "Quả sầu riêng",
+  "Quả thanh long",
 ] as const;
 
 const suffixes = [

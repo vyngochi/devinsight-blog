@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MessageSquarePlus, Search, UserRound } from "lucide-react";
-import { getCommunityDisplayName } from "@/features/community/anonymous-name";
+import { MessageSquare, MessageSquarePlus, Search } from "lucide-react";
+import { CommunityAuthorMeta } from "@/components/community/community-author-meta";
 import { COMMUNITY_TOPICS } from "@/features/community/community-content";
 import { getCommunityQuestions } from "@/features/community/server/community.service";
 
@@ -9,171 +9,81 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Cộng đồng lập trình",
-  description:
-    "Hỏi đáp lập trình cùng cộng đồng DevInsight. Đăng câu hỏi, chia sẻ code và nhận phản hồi từ các thành viên.",
+  description: "Hỏi đáp lập trình cùng cộng đồng DevInsight. Đăng câu hỏi, chia sẻ code và nhận phản hồi từ các thành viên.",
   alternates: { canonical: "/community" },
 };
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-export default async function CommunityPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; topic?: string }>;
-}) {
+export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ q?: string; topic?: string }> }) {
   const { q, topic } = await searchParams;
-  const selectedTopic = COMMUNITY_TOPICS.includes(
-    topic as (typeof COMMUNITY_TOPICS)[number],
-  )
-    ? topic
-    : undefined;
-  const questions = await getCommunityQuestions({
-    query: q,
-    topic: selectedTopic,
-  });
+  const selectedTopic = COMMUNITY_TOPICS.includes(topic as (typeof COMMUNITY_TOPICS)[number]) ? topic : undefined;
+  const questions = await getCommunityQuestions({ query: q, topic: selectedTopic });
 
   return (
-    <div className="bg-[#FFFDF5]">
-      <section className="border-b-2 border-[#1E293B] bg-[#F1F5F9]">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-end lg:px-8">
-          <div className="max-w-2xl">
-            <p className="text-sm font-extrabold text-[#7C3AED]">
-              Cộng đồng DevInsight
-            </p>
-            <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-[#1E293B]">
-              Q&A
-            </h1>
-            <p className="mt-3 text-base leading-relaxed text-[#475569]">
-              Đặt câu hỏi để được giải đáp từ cộng đồng DevInsight
-            </p>
+    <div className="min-h-[70dvh] bg-[#F8FAFC]">
+      <header className="border-b border-[#CBD5E1] bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col justify-between gap-4 px-4 py-6 sm:flex-row sm:items-center sm:px-6 lg:px-8">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#1E293B] sm:text-3xl">Cộng đồng</h1>
+            <p className="mt-1.5 text-sm text-[#64748B]">Hỏi đáp kỹ thuật, chia sẻ cách làm và cùng nhau gỡ lỗi.</p>
           </div>
-          <Link
-            href="/community/ask"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-[#1E293B] bg-[#FBBF24] px-5 py-3 text-sm font-extrabold text-[#1E293B] shadow-pop-sm hover:bg-[#F59E0B]"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            Đặt câu hỏi
+          <Link href="/community/ask" className="inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#6D28D9] active:translate-y-px">
+            <MessageSquarePlus className="h-4 w-4" /> Đặt câu hỏi
           </Link>
         </div>
-      </section>
+      </header>
 
-      <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_16rem] lg:px-8">
-        <div>
-          <form
-            className="grid gap-3 rounded-2xl border-2 border-[#1E293B] bg-white p-4 shadow-pop-sm md:grid-cols-[minmax(0,1fr)_auto_auto]"
-            role="search"
-          >
-            <label className="sr-only" htmlFor="community-search">
-              Tìm câu hỏi
-            </label>
+      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:px-8">
+        <div className="min-w-0">
+          <form className="grid gap-2 rounded-xl border border-[#CBD5E1] bg-white p-3 md:grid-cols-[minmax(0,1fr)_11rem_auto]" role="search">
+            <label className="sr-only" htmlFor="community-search">Tìm câu hỏi</label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-              <input
-                id="community-search"
-                name="q"
-                defaultValue={q}
-                placeholder="Tìm theo vấn đề hoặc đoạn code..."
-                className="w-full rounded-xl border-2 border-[#1E293B] bg-[#FFFDF5] py-2.5 pl-10 pr-3 text-sm font-semibold outline-none placeholder:text-[#94A3B8] focus:border-[#7C3AED]"
-              />
+              <input id="community-search" name="q" defaultValue={q} placeholder="Tìm vấn đề hoặc đoạn code" className="h-9 w-full rounded-lg border border-[#CBD5E1] bg-white pl-9 pr-3 text-xs font-medium text-[#1E293B] outline-none placeholder:text-[#94A3B8] focus:border-[#7C3AED]" />
             </div>
-            <select
-              name="topic"
-              defaultValue={selectedTopic ?? ""}
-              className="rounded-xl border-2 border-[#1E293B] bg-white px-3 py-2.5 text-sm font-bold text-[#1E293B] outline-none focus:border-[#7C3AED]"
-            >
+            <select name="topic" defaultValue={selectedTopic ?? ""} aria-label="Lọc theo chủ đề" className="h-9 rounded-lg border border-[#CBD5E1] bg-white px-2.5 text-xs font-semibold text-[#1E293B] outline-none focus:border-[#7C3AED]">
               <option value="">Tất cả chủ đề</option>
-              {COMMUNITY_TOPICS.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
+              {COMMUNITY_TOPICS.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <button className="rounded-xl border-2 border-[#1E293B] bg-[#8B5CF6] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#7C3AED]">
-              Tìm kiếm
-            </button>
+            <button className="h-9 rounded-lg bg-[#1E293B] px-4 text-xs font-bold text-white hover:bg-[#334155]">Tìm kiếm</button>
           </form>
 
-          <div className="mt-6 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-extrabold text-[#1E293B]">
-              Câu hỏi mới nhất
-            </h2>
-            <span className="text-sm font-bold text-[#64748B]">
-              {questions.length} kết quả
-            </span>
+          <div className="mt-5 flex items-center justify-between gap-4">
+            <h2 className="text-base font-extrabold text-[#1E293B]">Câu hỏi mới nhất</h2>
+            <span className="text-xs font-semibold text-[#64748B]">{questions.length} kết quả</span>
           </div>
+
           {questions.length ? (
-            <div className="mt-4 space-y-3">
-              {questions.map((question) => (
-                <article
-                  key={question.id}
-                  className="rounded-2xl border-2 border-[#1E293B] bg-white p-5 shadow-pop-sm"
-                >
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                    <span className="rounded-md border border-[#1E293B] bg-[#F1F5F9] px-2 py-1 text-[#475569]">
-                      {question.topic}
-                    </span>
-                    <span className="text-[#64748B]">
-                      {question._count.answers} phản hồi
-                    </span>
-                  </div>
-                  <Link
-                    href={`/community/${question.slug}`}
-                    className="mt-3 block text-lg font-extrabold text-[#1E293B] hover:text-[#7C3AED]"
-                  >
-                    {question.title}
-                  </Link>
-                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[#64748B]">
-                    {question.content_text}
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#64748B]">
-                    <span className="inline-flex items-center gap-1.5 font-semibold">
-                      <UserRound className="h-3.5 w-3.5" />
-                      {getCommunityDisplayName({
-                        ...question.author,
-                        isAnonymous: question.is_anonymous,
-                      })}
-                    </span>
-                    <time dateTime={question.created_at.toISOString()}>
-                      {formatDate(question.created_at)}
-                    </time>
+            <div className="mt-3 overflow-hidden rounded-xl border border-[#CBD5E1] bg-white">
+              {questions.map((question, index) => (
+                <article key={question.id} className={`flex flex-col gap-3 p-4 hover:bg-[#F8FAFC] sm:grid sm:grid-cols-[11rem_minmax(0,1fr)] ${index ? "border-t border-[#E2E8F0]" : ""}`}>
+                  <CommunityAuthorMeta author={question.author} isAnonymous={question.is_anonymous} createdAt={question.created_at} />
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <Link href={`/community/${question.slug}`} className="text-sm font-extrabold leading-5 text-[#1E293B] hover:text-[#7C3AED]">{question.title}</Link>
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[#64748B]"><MessageSquare className="h-3.5 w-3.5" />{question._count.answers}</span>
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#64748B]">{question.content_text}</p>
+                    <span className="mt-2 inline-flex rounded-md bg-[#EDE9FE] px-2 py-1 text-[10px] font-bold text-[#6D28D9]">{question.topic}</span>
                   </div>
                 </article>
               ))}
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl border-2 border-dashed border-[#94A3B8] bg-white p-8 text-center">
-              <h2 className="text-lg font-extrabold text-[#1E293B]">
-                Chưa có câu hỏi phù hợp
-              </h2>
-              <p className="mt-2 text-sm text-[#64748B]">
-                Hãy thử từ khóa khác hoặc là người đầu tiên đặt câu hỏi về chủ
-                đề này.
-              </p>
-              <Link
-                href="/community/ask"
-                className="mt-4 inline-flex rounded-lg border-2 border-[#1E293B] bg-[#FBBF24] px-4 py-2 text-sm font-bold text-[#1E293B]"
-              >
-                Đặt câu hỏi
-              </Link>
+            <div className="mt-3 rounded-xl border border-dashed border-[#94A3B8] bg-white p-7 text-center">
+              <h2 className="text-sm font-extrabold text-[#1E293B]">Chưa có câu hỏi phù hợp</h2>
+              <p className="mt-1.5 text-xs text-[#64748B]">Thử từ khóa khác hoặc đặt câu hỏi mới cho cộng đồng.</p>
+              <Link href="/community/ask" className="mt-3 inline-flex text-xs font-bold text-[#7C3AED] hover:underline">Đặt câu hỏi</Link>
             </div>
           )}
         </div>
 
-        <aside className="self-start rounded-2xl border-2 border-[#1E293B] bg-white p-5 lg:sticky lg:top-28">
-          <h2 className="text-base font-extrabold text-[#1E293B]">
-            Nguyên tắc cộng đồng
-          </h2>
-          <ul className="mt-4 space-y-3 text-sm leading-relaxed text-[#475569]">
-            <li>Đặt tiêu đề mô tả rõ vấn đề.</li>
-            <li>Thêm code tối thiểu có thể tái hiện lỗi.</li>
-            <li>Không chia sẻ mật khẩu, token hay dữ liệu cá nhân.</li>
-            <li>Tôn trọng người hỏi và người trả lời.</li>
-            <li>Dùng Báo cáo khi nội dung vi phạm.</li>
+        <aside className="h-fit rounded-xl border border-[#CBD5E1] bg-white p-4 lg:sticky lg:top-24">
+          <h2 className="text-sm font-extrabold text-[#1E293B]">Viết câu hỏi dễ trả lời</h2>
+          <ul className="mt-3 space-y-2.5 text-xs leading-5 text-[#64748B]">
+            <li>Mô tả kết quả bạn muốn đạt được.</li>
+            <li>Thêm đoạn code tối thiểu tái hiện lỗi.</li>
+            <li>Nêu rõ điều bạn đã thử.</li>
+            <li>Không đăng token hoặc dữ liệu riêng tư.</li>
           </ul>
         </aside>
       </main>

@@ -26,33 +26,33 @@ function formatDate(date: Date | null) {
 
 export function ResourceCard({ resource }: ResourceCardProps) {
   return (
-    <article className="flex min-h-[260px] flex-col rounded-2xl border-2 border-[#1E293B] bg-white p-4 shadow-pop-sm dark:border-slate-600 dark:bg-slate-900">
+    <article className="flex min-h-[235px] flex-col rounded-xl border border-[#CBD5E1] bg-white p-3.5 transition-colors hover:border-[#A78BFA]">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs font-bold text-[#64748B] dark:text-slate-300">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#1E293B] bg-[#EDE9FE] text-[#6D28D9] dark:border-slate-500 dark:bg-violet-950 dark:text-violet-200">
-            <FileText className="h-4 w-4" />
+        <div className="flex min-w-0 items-center gap-2 text-xs font-bold text-[#64748B]">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#C4B5FD] bg-[#EDE9FE] text-[#6D28D9]">
+            <FileText className="h-3.5 w-3.5" />
           </span>
           <span className="truncate">{resource.topic}</span>
         </div>
-        <span className="shrink-0 rounded-md border border-[#1E293B] bg-[#FBBF24] px-2 py-1 font-mono text-[11px] font-extrabold text-[#1E293B] dark:border-slate-500">{resourceTypeLabel(resource.mime_type)}</span>
+        <span className="shrink-0 rounded-md border border-[#D6D3D1] bg-[#FEF3C7] px-2 py-1 font-mono text-[10px] font-extrabold text-[#92400E]">{resourceTypeLabel(resource.mime_type)}</span>
       </div>
-      <h2 className="mt-4 line-clamp-2 text-base font-extrabold leading-snug text-[#1E293B] dark:text-white">
+      <h2 className="mt-3 line-clamp-2 text-sm font-extrabold leading-5 text-[#1E293B]">
         <Link href={`/resources/${resource.slug}`} className="hover:text-[#7C3AED]">
           {resource.title}
         </Link>
       </h2>
-      <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#64748B] dark:text-slate-300">{resource.description}</p>
+      <p className="mt-1.5 line-clamp-3 text-xs leading-5 text-[#64748B]">{resource.description}</p>
       <div className="mt-auto pt-4">
-        <p className="mb-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-[#64748B] dark:text-slate-400">
+        <p className="mb-2.5 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-[#64748B]">
           <span>{formatResourceFileSize(resource.file_size)}</span>
           <span>{resource.download_count.toLocaleString("vi-VN")} lượt tải</span>
           <span>{formatDate(resource.published_at ?? resource.created_at)}</span>
         </p>
         <div className="flex gap-2">
-          <Link href={`/resources/${resource.slug}`} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border-2 border-[#1E293B] bg-white px-3 py-2 text-xs font-extrabold text-[#1E293B] hover:bg-[#F1F5F9] dark:border-slate-500 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700">
+          <Link href={`/resources/${resource.slug}`} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-[11px] font-extrabold text-[#1E293B] hover:bg-[#F8FAFC]">
             <Eye className="h-3.5 w-3.5" /> Xem trước
           </Link>
-          <a href={`/api/resources/${resource.slug}?download=1`} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border-2 border-[#1E293B] bg-[#FBBF24] px-3 py-2 text-xs font-extrabold text-[#1E293B] hover:bg-[#F59E0B] dark:border-slate-500">
+          <a href={`/api/resources/${resource.slug}?download=1`} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#1E293B] bg-[#FBBF24] px-3 py-2 text-[11px] font-extrabold text-[#1E293B] hover:bg-[#F59E0B]">
             <Download className="h-3.5 w-3.5" /> Tải về
           </a>
         </div>

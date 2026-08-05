@@ -116,13 +116,15 @@ export async function getResourceAccessUrl(slug: string, download: boolean) {
   return url;
 }
 
-export async function removeResource(id: string) {
+export async function removeResource(id: string, restrictedUploaderId?: string) {
   const resource = await findResourceForDeletion(id);
   if (!resource) throw new Error("Tài nguyên không còn tồn tại.");
+  if (restrictedUploaderId && resource.uploaded_by_id !== restrictedUploaderId)
+    throw new Error("Bạn không có quyền xóa tài nguyên này.");
 
   // Remove the private object first. If R2 rejects the request, retain the
   // database record so an administrator can retry without losing its metadata.
   await deleteResourceObject(resource.file_key);
-  await deleteResourceById(resource.id);
+  await deleteResourceById(resource.id, restrictedUploaderId);
   return resource;
 }

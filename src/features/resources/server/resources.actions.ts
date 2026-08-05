@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 import {
   publishResource,
   removeResource,
@@ -9,9 +10,9 @@ import {
 
 export type ResourceActionState = { error?: string; success?: string };
 
-async function requireAdmin() {
+async function requireResourceManager() {
   const session = await auth();
-  if (session?.user?.role !== "ADMIN" || !session.user.id)
+  if (!session?.user?.id || !(await canUseAuthorPermission(session.user, "manageResources")))
     throw new Error("Bạn không có quyền quản lý tài nguyên.");
   return session.user;
 }
@@ -25,7 +26,7 @@ export async function registerResourceAction(
   formData: FormData,
 ): Promise<ResourceActionState> {
   try {
-    const user = await requireAdmin();
+    const user = await requireResourceManager();
     await publishResource({
       title: readText(formData.get("title"), 220),
       description: readText(formData.get("description"), 2_000),
@@ -49,10 +50,10 @@ export async function deleteResourceAction(
   resourceId: string,
 ): Promise<ResourceActionState> {
   try {
-    await requireAdmin();
+    const user = await requireResourceManager();
     if (!/^[0-9a-f-]{36}$/i.test(resourceId))
       throw new Error("Mã tài nguyên không hợp lệ.");
-    await removeResource(resourceId);
+    await removeResource(resourceId, user.role === "AUTHOR" ? user.id : undefined);
     revalidatePath("/resources");
     revalidatePath("/admin/resources");
     return { success: "Đã xóa tệp trên R2 và metadata trong cơ sở dữ liệu." };

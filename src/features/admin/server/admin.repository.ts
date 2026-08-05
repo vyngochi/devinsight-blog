@@ -47,6 +47,22 @@ export async function fetchAdminPlatformMetrics() {
   };
 }
 
+export async function fetchAuthorDashboardMetrics(authorId: string) {
+  const [publishedPosts, draftPosts, totalViews, totalReaders, latestPosts] = await Promise.all([
+    prisma.posts.count({ where: { author_id: authorId, status: "PUBLISHED" } }),
+    prisma.posts.count({ where: { author_id: authorId, status: "DRAFT" } }),
+    prisma.posts.aggregate({ where: { author_id: authorId }, _sum: { view_count: true } }),
+    prisma.post_views.count({ where: { posts: { author_id: authorId } } }),
+    prisma.posts.findMany({
+      where: { author_id: authorId },
+      select: { slug: true, title: true, status: true, view_count: true, updated_at: true },
+      orderBy: { updated_at: "desc" },
+      take: 6,
+    }),
+  ]);
+  return { publishedPosts, draftPosts, totalViews: totalViews._sum.view_count ?? 0, totalReaders, latestPosts };
+}
+
 type FindUsersInput = {
   query?: string;
   role?: user_role;
@@ -119,4 +135,3 @@ export async function consumeRoleChangeCode(input: {
   await prisma.verificationToken.delete({ where: { token: verification.token } });
   return true;
 }
-

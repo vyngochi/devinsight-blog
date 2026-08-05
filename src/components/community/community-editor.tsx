@@ -45,7 +45,7 @@ function ToolButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`grid h-8 w-8 place-items-center rounded-md border text-[#1E293B] ${active ? "border-[#1E293B] bg-[#FBBF24]" : "border-transparent hover:border-[#1E293B] hover:bg-[#F1F5F9]"}`}
+      className={`grid h-7 w-7 place-items-center rounded-md border text-[#1E293B] ${active ? "border-[#7C3AED] bg-[#EDE9FE] text-[#6D28D9]" : "border-transparent hover:border-[#CBD5E1] hover:bg-white"}`}
     >
       {children}
     </button>
@@ -67,7 +67,7 @@ export function CommunityEditor({
     content: { type: "doc", content: [{ type: "paragraph" }] },
     editorProps: {
       attributes: {
-        class: "community-editor-content min-h-52 px-4 py-3 outline-none",
+        class: "community-editor-content min-h-32 px-3 py-2.5 outline-none",
       },
     },
     onUpdate: ({ editor: currentEditor }) =>
@@ -80,16 +80,16 @@ export function CommunityEditor({
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C3AED]";
   return (
     <div>
-      <label className="block text-sm font-extrabold text-[#1E293B]">
+      <label className="block text-xs font-extrabold text-[#1E293B]">
         {label}
       </label>
       {description ? (
-        <p className="mt-1 text-xs leading-relaxed text-[#64748B]">
+        <p className="mt-1 text-[11px] leading-4 text-[#64748B]">
           {description}
         </p>
       ) : null}
-      <div className="mt-2 overflow-hidden rounded-xl border-2 border-[#1E293B] bg-white">
-        <div className="flex flex-wrap items-center gap-1 border-b-2 border-[#1E293B] bg-[#F1F5F9] p-2">
+      <div className="mt-1.5 overflow-hidden rounded-lg border border-[#CBD5E1] bg-white">
+        <div className="flex flex-wrap items-center gap-0.5 border-b border-[#CBD5E1] bg-[#F1F5F9] p-1.5">
           <ToolButton
             label="In đậm"
             active={editor.isActive("bold")}
@@ -162,7 +162,7 @@ export function CommunityEditor({
                 .updateAttributes("codeBlock", { language: event.target.value })
                 .run()
             }
-            className={`ml-1 h-8 rounded-md border border-[#1E293B] bg-white px-2 text-xs font-bold text-[#1E293B] ${buttonClass}`}
+            className={`ml-1 h-7 rounded-md border border-[#CBD5E1] bg-white px-2 text-[11px] font-bold text-[#1E293B] ${buttonClass}`}
           >
             {CODE_LANGUAGES.map((language) => (
               <option key={language} value={language}>

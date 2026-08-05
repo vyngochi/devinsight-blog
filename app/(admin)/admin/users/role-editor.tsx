@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState } from "react";
 import {
   requestRoleChangeAction,
   confirmRoleChangeAction,
@@ -12,20 +12,13 @@ export function RoleEditor({
   locked,
 }: {
   userId: string;
-  initialRole: "USER" | "ADMIN";
+  initialRole: "USER" | "AUTHOR" | "ADMIN";
   locked: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedRole, setSelectedRole] = useState(initialRole);
   const [step, setStep] = useState<1 | 2>(1);
   const [error, setError] = useState<string | null>(null);
-
-  // Sync state if server data changes
-  useEffect(() => {
-    setSelectedRole(initialRole);
-    setStep(1);
-    setError(null);
-  }, [initialRole]);
 
   const hasChanged = selectedRole !== initialRole;
 
@@ -38,8 +31,8 @@ export function RoleEditor({
             try {
               await confirmRoleChangeAction(formData);
               // if success, useEffect will reset step to 1 because initialRole changes.
-            } catch (err: any) {
-              setError(err.message || "Có lỗi xảy ra.");
+            } catch (err: unknown) {
+              setError(err instanceof Error ? err.message : "Có lỗi xảy ra.");
             }
           });
         }}
@@ -91,8 +84,8 @@ export function RoleEditor({
           try {
             await requestRoleChangeAction(formData);
             setStep(2);
-          } catch (err: any) {
-            setError(err.message || "Có lỗi xảy ra.");
+          } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Có lỗi xảy ra.");
           }
         });
       }}
@@ -103,11 +96,12 @@ export function RoleEditor({
         <select
           name="role"
           value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value as "USER" | "ADMIN")}
+          onChange={(e) => setSelectedRole(e.target.value as "USER" | "AUTHOR" | "ADMIN")}
           disabled={locked || isPending}
           className="min-w-0 flex-1 rounded-lg border-2 border-[#1E293B] bg-[#FFFDF5] px-2 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60"
         >
           <option value="USER">USER</option>
+          <option value="AUTHOR">AUTHOR</option>
           <option value="ADMIN">ADMIN</option>
         </select>
         <button

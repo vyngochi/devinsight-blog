@@ -1,11 +1,12 @@
 import { auth } from "@/auth";
 import { uploadPostImage } from "@/features/content/server/post-image.service";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (session?.user?.role !== "ADMIN")
+  if (!session?.user || !((await canUseAuthorPermission(session.user, "writePosts")) || (await canUseAuthorPermission(session.user, "writeNews"))))
     return Response.json({ error: "Bạn không có quyền tải ảnh lên." }, { status: 403 });
 
   try {

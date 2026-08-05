@@ -2,12 +2,17 @@ import Link from "next/link";
 import { Flag, ShieldCheck } from "lucide-react";
 import { moderateCommunityReportAction } from "@/features/community/server/community.actions";
 import { getCommunityReports } from "@/features/community/server/community.service";
+import { auth } from "@/auth";
+import { notFound } from "next/navigation";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export default async function AdminCommunityPage() {
+  const session = await auth();
+  if (!session?.user || !(await canUseAuthorPermission(session.user, "moderateCommunity"))) notFound();
   const reports = await getCommunityReports();
   return <div className="space-y-6">
     <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="font-mono text-xs font-bold text-[#8B5CF6]">CỘNG ĐỒNG</p><h1 className="mt-2 text-3xl font-extrabold tracking-tight">Hàng đợi kiểm duyệt</h1><p className="mt-2 max-w-2xl text-sm text-[#64748B]">Nội dung được công khai ngay. Quản trị viên xử lý các báo cáo tại đây và có thể ẩn nội dung vi phạm.</p></div><Link href="/community" className="inline-flex items-center justify-center rounded-full border-2 border-[#1E293B] bg-white px-4 py-2 text-sm font-bold shadow-pop-sm hover:bg-[#FBBF24]">Mở Cộng đồng</Link></section>

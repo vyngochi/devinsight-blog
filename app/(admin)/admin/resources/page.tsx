@@ -3,6 +3,9 @@ import { DeleteResourceButton } from "@/features/resources/components/delete-res
 import { ResourceUploadForm } from "@/features/resources/components/resource-upload-form";
 import { formatResourceFileSize } from "@/features/resources/resource-policy";
 import { getManagedResources } from "@/features/resources/server/resources.service";
+import { auth } from "@/auth";
+import { notFound } from "next/navigation";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(date);
@@ -21,7 +24,9 @@ function statusClass(status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
 }
 
 export default async function AdminResourcesPage() {
-  const resources = await getManagedResources();
+  const session = await auth();
+  if (!session?.user || !(await canUseAuthorPermission(session.user, "manageResources"))) notFound();
+  const resources = await getManagedResources(session.user.role === "AUTHOR" ? session.user.id : undefined);
 
   return <div className="space-y-6">
     <section>

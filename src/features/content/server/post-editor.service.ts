@@ -5,11 +5,16 @@ import { cache } from "react";
 import type { PostSummary } from "@/types/blog";
 import { EDITOR_BADGE_COLORS, EDITOR_POST_CATEGORIES, editorCategorySlugs } from "@/features/content/post-editor-policy";
 import {
+  deleteEditableDatabasePostBySlug,
   findAdminPosts,
+  findAdminNewsPosts,
+  findEditableDatabasePostBySlug,
   findPublishedDatabasePostBySlug,
   findPublishedDatabasePosts,
   upsertDatabasePost,
+  updateDatabasePost,
 } from "@/features/content/server/post.repository";
+import type { EditorPostInitialData, NewsEditorInitialData } from "@/features/content/editor-types";
 
 
 function cleanText(value: string, label: string, maxLength: number) {
@@ -41,9 +46,12 @@ function validateControlledMdx(value: string) {
   const withoutCodeFences = content.replace(/```[\s\S]*?```/g, "");
   if (/^\s*(import|export)\s/m.test(withoutCodeFences) || /\{[^}]*\}/.test(withoutCodeFences))
     throw new Error("Nội dung không được chứa import, export hoặc biểu thức JavaScript.");
-  const withoutCallouts = withoutCodeFences.replace(/<\/?Callout(?:\s+type="(?:tip|note)")?\s*>/g, "");
-  if (/<\/?[A-Za-z]/.test(withoutCallouts))
-    throw new Error("Chỉ hỗ trợ MDX component <Callout> và <Callout type=\"note\">.");
+  const withoutSupportedComponents = withoutCodeFences.replace(
+    /<\/?(?:Callout(?:\s+type="(?:tip|note)")?|ImageGrid(?:\s+layout="(?:two|three|featured)")?)\s*>/g,
+    "",
+  );
+  if (/<\/?[A-Za-z]/.test(withoutSupportedComponents))
+    throw new Error("Chỉ hỗ trợ MDX component <Callout> và <ImageGrid>.");
   return content;
 }
 
@@ -68,6 +76,9 @@ function asPostSummary(post: Awaited<ReturnType<typeof findPublishedDatabasePost
 }
 
 export async function saveDatabasePost(input: {
+  originalSlug?: string;
+  authorId?: string;
+  restrictedAuthorId?: string;
   title: string;
   slug: string;
   excerpt: string;
@@ -93,7 +104,7 @@ export async function saveDatabasePost(input: {
   if (coverImage && !/^https?:\/\//.test(coverImage))
     throw new Error("Ảnh cover phải là URL http hoặc https.");
 
-  return upsertDatabasePost({
+  const persistenceInput = {
     slug,
     title: cleanText(input.title, "Tiêu đề", 255),
     excerpt: cleanText(input.excerpt, "Mô tả ngắn", 500),
@@ -106,8 +117,147 @@ export async function saveDatabasePost(input: {
     badgeColor,
     readingTimeInMinutes: readingTime,
     coverImage: coverImage || undefined,
-    status: input.intent === "publish" ? "PUBLISHED" : "DRAFT",
+    status: input.intent === "publish" ? "PUBLISHED" as const : "DRAFT" as const,
+    authorId: input.authorId,
+  };
+  return input.originalSlug
+    ? updateDatabasePost(input.originalSlug, persistenceInput, input.restrictedAuthorId)
+    : upsertDatabasePost(persistenceInput, input.restrictedAuthorId);
+}
+
+function formatNewsDate(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) throw new Error("Thời điểm tin không hợp lệ.");
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "full", timeStyle: "short" }).format(date);
+}
+
+function buildNewsContent(input: {
+  content: string;
+  sourceName: string;
+  sourceUrl: string;
+  reportedAt: string;
+  existingReportedAtLabel?: string;
+}) {
+  const sourceName = input.sourceName.trim();
+  const sourceUrl = input.sourceUrl.trim();
+  if (sourceName.length > 120) throw new Error("Tên nguồn không được quá 120 ký tự.");
+  if (sourceUrl) {
+    let source: URL;
+    try {
+      source = new URL(sourceUrl);
+    } catch {
+      throw new Error("Link nguồn không hợp lệ.");
+    }
+    if (!/^https?:$/.test(source.protocol)) throw new Error("Link nguồn phải dùng http hoặc https.");
+    if (!sourceName) throw new Error("Hãy nhập tên nguồn khi có link nguồn.");
+  } else if (sourceName) {
+    throw new Error("Hãy nhập link nguồn tương ứng.");
+  }
+
+  const reportedAt = formatNewsDate(input.reportedAt) ?? input.existingReportedAtLabel?.trim();
+  const metadata = [
+    sourceUrl ? `> Nguồn: [${sourceName.replace(/[\[\]]/g, "")}](${sourceUrl})` : "",
+    reportedAt ? `> Thời điểm tin: ${reportedAt}` : "",
+  ].filter(Boolean);
+  return metadata.length ? `${input.content.trim()}\n\n${metadata.join("\n")}` : input.content;
+}
+
+export async function saveDatabaseNews(input: {
+  originalSlug?: string;
+  authorId?: string;
+  restrictedAuthorId?: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  tags: string;
+  authorName: string;
+  coverImage: string;
+  sourceName: string;
+  sourceUrl: string;
+  reportedAt: string;
+  existingReportedAtLabel?: string;
+  intent: string;
+}) {
+  const additionalTags = parseTags(input.tags);
+  if (additionalTags.length > 5) throw new Error("Tin tức chỉ dùng tối đa 5 tags bổ sung.");
+  const tags = [...new Set(["news", "tin tức", "công nghệ", ...additionalTags])].join(",");
+  return saveDatabasePost({
+    originalSlug: input.originalSlug,
+    authorId: input.authorId,
+    restrictedAuthorId: input.restrictedAuthorId,
+    title: input.title,
+    slug: input.slug,
+    excerpt: input.excerpt,
+    content: buildNewsContent(input),
+    category: "Khám phá",
+    tags,
+    authorName: input.authorName,
+    authorRole: "Ban biên tập DevInsight",
+    readingTime: "3",
+    coverImage: input.coverImage,
+    badgeColor: "pink",
+    intent: input.intent,
   });
+}
+
+function splitNewsMetadata(content: string) {
+  const lines = content.trimEnd().split("\n");
+  let reportedAtLabel = "";
+  let sourceName = "";
+  let sourceUrl = "";
+  const reportedAt = lines.at(-1)?.match(/^> Thời điểm tin:\s*(.+)$/);
+  if (reportedAt) {
+    reportedAtLabel = reportedAt[1];
+    lines.pop();
+  }
+  const source = lines.at(-1)?.match(/^> Nguồn:\s*\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/);
+  if (source) {
+    sourceName = source[1];
+    sourceUrl = source[2];
+    lines.pop();
+  }
+  return { content: lines.join("\n").trimEnd(), sourceName, sourceUrl, reportedAtLabel };
+}
+
+export async function getAdminEditablePost(slug: string, kind: "article" | "news", restrictedAuthorId?: string): Promise<EditorPostInitialData | NewsEditorInitialData | null> {
+  const post = await findEditableDatabasePostBySlug(slug, kind, restrictedAuthorId);
+  if (!post) return null;
+  const tags = post.post_tags
+    .map((item) => item.tags)
+    .filter((tag) => !["news", "tin-tuc", "cong-nghe"].includes(tag.slug))
+    .map((tag) => tag.name)
+    .join(", ");
+  const base: EditorPostInitialData = {
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    content: post.content_mdx,
+    category: post.categories.name,
+    tags,
+    authorName: post.author_name || "DevInsight",
+    authorRole: post.author_role || "",
+    readingTime: post.reading_time_min,
+    coverImage: post.cover_image || "",
+    badgeColor: post.badge_color,
+    status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+  };
+  if (kind === "article") return base;
+  const metadata = splitNewsMetadata(post.content_mdx);
+  return {
+    ...base,
+    content: metadata.content,
+    sourceName: metadata.sourceName,
+    sourceUrl: metadata.sourceUrl,
+    reportedAtLabel: metadata.reportedAtLabel,
+  };
+}
+
+export async function deleteAdminEditablePost(slug: string, kind: "article" | "news", restrictedAuthorId?: string) {
+  const result = await deleteEditableDatabasePostBySlug(slug, kind, restrictedAuthorId);
+  if (!result.count) throw new Error("Không tìm thấy bài viết có thể xóa.");
 }
 
 export async function getDatabasePostSummaries() {
@@ -118,9 +268,10 @@ export const getDatabasePostBySlug = cache(async (slug: string) => {
   const post = await findPublishedDatabasePostBySlug(slug);
   if (!post) return null;
   return {
-    ...asPostSummary({ ...post, view_count: 0 }),
+    ...asPostSummary(post),
     content: post.content_mdx,
   };
 });
 
 export const getAdminPostList = findAdminPosts;
+export const getAdminNewsList = findAdminNewsPosts;

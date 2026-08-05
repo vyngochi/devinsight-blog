@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import type { user_role } from "@/generated/prisma/client";
 import { requestManagedUserRoleChange, confirmManagedUserRoleChange } from "@/features/admin/server/admin.service";
+import { AUTHOR_PERMISSION_KEYS, saveAuthorPermissions, type AuthorPermissions } from "@/features/admin/server/author-permissions";
+
+export type AuthorPermissionsActionState = { error?: string; success?: string };
 
 async function requireAdmin() {
   const session = await auth();
@@ -25,7 +28,7 @@ export async function requestRoleChangeAction(formData: FormData) {
   if (typeof userId !== "string" || !userId) {
     throw new Error("Người dùng không hợp lệ.");
   }
-  if (role !== "USER" && role !== "ADMIN") {
+  if (role !== "USER" && role !== "AUTHOR" && role !== "ADMIN") {
     throw new Error("Vai trò không hợp lệ.");
   }
 
@@ -47,7 +50,7 @@ export async function confirmRoleChangeAction(formData: FormData) {
   if (typeof userId !== "string" || !userId) {
     throw new Error("Người dùng không hợp lệ.");
   }
-  if (role !== "USER" && role !== "ADMIN") {
+  if (role !== "USER" && role !== "AUTHOR" && role !== "ADMIN") {
     throw new Error("Vai trò không hợp lệ.");
   }
   if (typeof code !== "string" || code.length !== 6) {
@@ -67,3 +70,21 @@ export async function confirmRoleChangeAction(formData: FormData) {
   return { success: true };
 }
 
+export async function saveAuthorPermissionsAction(_: AuthorPermissionsActionState, formData: FormData): Promise<AuthorPermissionsActionState> {
+  try {
+    await requireAdmin();
+    const permissions = Object.fromEntries(
+      AUTHOR_PERMISSION_KEYS.map((key) => [key, formData.get(key) === "on"]),
+    ) as AuthorPermissions;
+    await saveAuthorPermissions(permissions);
+    revalidatePath("/admin");
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/posts");
+    revalidatePath("/admin/news");
+    revalidatePath("/admin/community");
+    revalidatePath("/admin/resources");
+    return { success: "Đã cập nhật quyền mặc định cho AUTHOR." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Không thể cập nhật quyền AUTHOR." };
+  }
+}

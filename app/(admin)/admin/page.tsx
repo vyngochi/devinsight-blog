@@ -2,16 +2,34 @@ import Link from "next/link";
 import {
   Activity,
   BookOpen,
+  FileText,
   Eye,
   MessageSquare,
   ShieldCheck,
   UserRoundPlus,
   Users,
 } from "lucide-react";
-import { getAdminDashboardData } from "@/features/admin/server/admin.service";
+import { getAdminDashboardData, getAuthorDashboardData } from "@/features/admin/server/admin.service";
+import { auth } from "@/auth";
+import { notFound } from "next/navigation";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
 const numberFormat = new Intl.NumberFormat("vi-VN");
 export default async function AdminDashboardPage() {
+  const session = await auth();
+  if (!session?.user) notFound();
+  if (session.user.role === "AUTHOR") {
+    if (!(await canUseAuthorPermission(session.user, "viewOwnAnalytics"))) notFound();
+    const dashboard = await getAuthorDashboardData(session.user.id);
+    const cards = [
+      { label: "Lượt đọc", value: dashboard.totalViews, icon: Eye, color: "bg-[#8B5CF6]" },
+      { label: "Độc giả duy nhất", value: dashboard.totalReaders, icon: Activity, color: "bg-[#F472B6]" },
+      { label: "Đã xuất bản", value: dashboard.publishedPosts, icon: BookOpen, color: "bg-[#FBBF24] text-[#1E293B]" },
+      { label: "Bản nháp", value: dashboard.draftPosts, icon: FileText, color: "bg-[#34D399] text-[#1E293B]" },
+    ];
+    return <div className="space-y-6"><section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="font-mono text-xs font-bold text-[#8B5CF6]">AUTHOR STUDIO</p><h1 className="mt-2 text-3xl font-extrabold tracking-tight">Tổng quan nội dung của bạn</h1><p className="mt-2 max-w-2xl text-sm text-[#64748B]">Các số liệu này chỉ tính trên bài viết và tin tức do bạn tạo.</p></div><Link href="/admin/posts/new" className="inline-flex items-center justify-center rounded-full border-2 border-[#1E293B] bg-[#FBBF24] px-4 py-2 text-sm font-bold shadow-pop-sm">Viết bài mới</Link></section><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ label, value, icon: Icon, color }) => <article key={label} className="rounded-2xl border-2 border-[#1E293B] bg-white p-5 shadow-pop-sm"><span className={`grid h-10 w-10 place-items-center rounded-xl border-2 border-[#1E293B] text-white ${color}`}><Icon className="h-5 w-5" /></span><p className="mt-5 text-3xl font-extrabold">{numberFormat.format(value)}</p><p className="mt-1 text-sm font-bold text-[#64748B]">{label}</p></article>)}</section><section className="rounded-2xl border-2 border-[#1E293B] bg-white p-5 shadow-pop-sm"><div className="flex items-center justify-between gap-3"><div><h2 className="font-extrabold">Bài viết cập nhật gần đây</h2><p className="mt-1 text-sm text-[#64748B]">Theo dõi hiệu quả nội dung của bạn.</p></div><Link href="/admin/posts" className="text-sm font-bold text-[#6D28D9] hover:underline">Quản lý bài viết</Link></div><div className="mt-4 divide-y divide-[#E2E8F0]">{dashboard.latestPosts.length ? dashboard.latestPosts.map((post) => <Link key={post.slug} href={post.status === "PUBLISHED" ? `/posts/${post.slug}` : `/admin/posts/${post.slug}/edit`} className="flex items-center justify-between gap-4 py-3 hover:text-[#6D28D9]"><span className="min-w-0"><span className="block truncate text-sm font-extrabold">{post.title}</span><span className="mt-1 block text-xs text-[#64748B]">{post.status === "PUBLISHED" ? "Đã xuất bản" : "Bản nháp"}</span></span><span className="shrink-0 text-xs font-bold text-[#64748B]">{numberFormat.format(post.view_count)} lượt đọc</span></Link>) : <p className="py-8 text-center text-sm text-[#64748B]">Bạn chưa có bài viết nào.</p>}</div></section></div>;
+  }
+  if (session.user.role !== "ADMIN") notFound();
   const { analytics, platform } = await getAdminDashboardData();
   const cards = [
     {

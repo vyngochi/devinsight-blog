@@ -2,6 +2,7 @@ import { Search, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { RoleEditor } from "./role-editor";
 import { getManagedUsers } from "@/features/admin/server/admin.service";
+import { notFound } from "next/navigation";
 
 const dateFormat = new Intl.DateTimeFormat("vi-VN", {
   day: "2-digit",
@@ -16,13 +17,14 @@ type UsersPageProps = {
 export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
   const filters = await searchParams;
   const role =
-    filters.role === "ADMIN" || filters.role === "USER"
+    filters.role === "ADMIN" || filters.role === "AUTHOR" || filters.role === "USER"
       ? filters.role
       : undefined;
   const [users, session] = await Promise.all([
     getManagedUsers({ query: filters.q, role }),
     auth(),
   ]);
+  if (session?.user?.role !== "ADMIN") notFound();
 
   return (
     <div className="space-y-6">
@@ -57,6 +59,7 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
           <option value="">Tất cả vai trò</option>
           <option value="ADMIN">ADMIN</option>
           <option value="USER">USER</option>
+          <option value="AUTHOR">AUTHOR</option>
         </select>
         <button className="rounded-full border-2 border-[#1E293B] bg-[#8B5CF6] px-5 py-2.5 text-sm font-bold text-white shadow-pop-sm hover:bg-[#7C3AED]">
           Lọc danh sách
@@ -96,6 +99,7 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
                     <p className="mt-1">{user._count.comments} bình luận · {user._count.accounts} liên kết</p>
                   </div>
                   <RoleEditor
+                    key={user.role}
                     userId={user.id}
                     initialRole={user.role}
                     locked={locked}

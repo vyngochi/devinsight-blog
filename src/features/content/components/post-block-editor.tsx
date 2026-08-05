@@ -19,7 +19,10 @@ import {
   Upload,
 } from "lucide-react";
 
-type BlockType = "heading1" | "heading2" | "paragraph" | "code" | "callout" | "image";
+type BlockType = "heading1" | "heading2" | "paragraph" | "code" | "callout" | "image" | "imageGallery";
+export type PostEditorMode = "article" | "news";
+type ImageGalleryLayout = "two" | "three" | "featured";
+type GalleryImage = { src: string; alt: string };
 
 type EditorBlock = {
   id: string;
@@ -29,16 +32,23 @@ type EditorBlock = {
   calloutType?: "tip" | "note";
   src?: string;
   alt?: string;
+  images?: GalleryImage[];
+  layout?: ImageGalleryLayout;
 };
 
-const blockOptions: Array<{ type: BlockType; label: string; icon: typeof Heading1 }> = [
+const articleBlockOptions: Array<{ type: BlockType; label: string; icon: typeof Heading1 }> = [
   { type: "heading1", label: "Tiêu đề 1", icon: Heading1 },
   { type: "heading2", label: "Tiêu đề 2", icon: Heading2 },
   { type: "paragraph", label: "Đoạn văn", icon: Pilcrow },
   { type: "code", label: "Code", icon: Code2 },
   { type: "callout", label: "Lưu ý", icon: Lightbulb },
   { type: "image", label: "Ảnh", icon: ImageIcon },
+  { type: "imageGallery", label: "Bộ ảnh", icon: ImageIcon },
 ];
+
+const newsBlockOptions = articleBlockOptions.filter(
+  (option) => option.type !== "code" && option.type !== "callout",
+);
 
 function createBlock(type: BlockType): EditorBlock {
   return {
@@ -48,10 +58,20 @@ function createBlock(type: BlockType): EditorBlock {
     ...(type === "code" ? { language: "typescript" } : {}),
     ...(type === "callout" ? { calloutType: "note" } : {}),
     ...(type === "image" ? { src: "", alt: "" } : {}),
+    ...(type === "imageGallery" ? { layout: "two" as const, images: [{ src: "", alt: "" }, { src: "", alt: "" }] } : {}),
   };
 }
 
-function initialBlocks(): EditorBlock[] {
+function initialBlocks(mode: PostEditorMode): EditorBlock[] {
+  if (mode === "news") {
+    return [
+      createBlock("paragraph"),
+      createBlock("heading2"),
+      createBlock("paragraph"),
+      createBlock("heading2"),
+      createBlock("paragraph"),
+    ];
+  }
   return [
     { ...createBlock("heading2"), text: "Mở đầu" },
     {
@@ -80,28 +100,72 @@ function serializeBlocks(blocks: EditorBlock[]) {
         return text ? `<Callout type="${block.calloutType || "note"}">\n\n${text}\n\n</Callout>` : "";
       if (block.type === "image" && block.src?.trim())
         return `![${(block.alt || "Hình ảnh minh họa").trim()}](${block.src.trim()})`;
+      if (block.type === "imageGallery") {
+        const images = (block.images ?? []).filter((image) => image.src.trim());
+        if (!images.length) return "";
+        if (images.length === 1) return `![${(images[0].alt || "Hình ảnh minh họa").trim()}](${images[0].src.trim()})`;
+        return `<ImageGrid layout="${block.layout ?? "two"}">\n\n${images.map((image) => `![${(image.alt || "Hình ảnh minh họa").trim()}](${image.src.trim()})`).join("\n\n")}\n\n</ImageGrid>`;
+      }
       return "";
     })
     .filter(Boolean)
     .join("\n\n");
 }
 
-function PreviewPane({ blocks, title, excerpt }: { blocks: EditorBlock[]; title: string; excerpt: string }) {
+function blocksFromContent(content: string, mode: PostEditorMode) {
+  const normalizedContent = content.replace(/\r\n?/g, "\n");
+  const protectedPattern = /```([\w-]*)\n([\s\S]*?)\n```|<Callout type="(tip|note)">\s*([\s\S]*?)\s*<\/Callout>|<ImageGrid layout="(two|three|featured)">\s*([\s\S]*?)\s*<\/ImageGrid>/g;
+  const blocks: EditorBlock[] = [];
+  const addPlainText = (value: string) => {
+    value.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean).forEach((part) => {
+      const heading = part.match(/^(#{1,2})\s+(.+)$/);
+      const image = part.match(/^!\[([^\]]*)\]\(([\s\S]+)\)$/);
+      if (heading) blocks.push({ ...createBlock(heading[1].length === 1 ? "heading1" : "heading2"), text: heading[2] });
+      else if (image) blocks.push({ ...createBlock("image"), src: image[2], alt: image[1] });
+      else blocks.push({ ...createBlock("paragraph"), text: part });
+    });
+  };
+  let lastIndex = 0;
+  for (const match of normalizedContent.matchAll(protectedPattern)) {
+    addPlainText(normalizedContent.slice(lastIndex, match.index));
+    if (match[1] !== undefined) blocks.push({ ...createBlock("code"), language: match[1] || "text", text: match[2] });
+    else if (match[3] !== undefined) blocks.push({ ...createBlock("callout"), calloutType: match[3] as "tip" | "note", text: match[4].trim() });
+    else {
+      const images = [...match[6].matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)].map((image) => ({ alt: image[1], src: image[2] }));
+      blocks.push(images.length > 1 ? { ...createBlock("imageGallery"), layout: match[5] as ImageGalleryLayout, images } : { ...createBlock("image"), ...(images[0] ?? {}) });
+    }
+    lastIndex = (match.index ?? 0) + match[0].length;
+  }
+  addPlainText(normalizedContent.slice(lastIndex));
+  return blocks.length ? blocks : initialBlocks(mode);
+}
+
+function galleryGridClass(layout: ImageGalleryLayout | undefined) {
+  if (layout === "three") return "grid-cols-1 sm:grid-cols-3";
+  if (layout === "featured") return "grid-cols-1 sm:grid-cols-[minmax(0,1.45fr)_minmax(0,0.85fr)]";
+  return "grid-cols-1 sm:grid-cols-2";
+}
+
+function PreviewPane({ blocks, title, excerpt, mode = "article" }: { blocks: EditorBlock[]; title: string; excerpt: string; mode?: PostEditorMode }) {
   return (
     <aside className="h-full overflow-y-auto bg-[#FFFDF5] px-6 py-10 sm:px-10 lg:px-14">
       <div className="mx-auto max-w-3xl">
-        <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-[#8B5CF6]">BẢN XEM TRƯỚC</span>
-        <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-[#1E293B] sm:text-4xl">{title || "Tiêu đề bài viết"}</h1>
+        <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-[#8B5CF6]">{mode === "news" ? "BẢN TIN XEM TRƯỚC" : "BẢN XEM TRƯỚC"}</span>
+        <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-[#1E293B] sm:text-4xl">{title || (mode === "news" ? "Tiêu đề tin tức" : "Tiêu đề bài viết")}</h1>
         {excerpt ? <p className="mt-4 text-base leading-7 text-[#64748B]">{excerpt}</p> : null}
         <div className="mt-10 border-t-2 border-[#1E293B] pt-8">
           {blocks.map((block) => {
-            if (!block.text.trim() && block.type !== "image") return null;
+            if (!block.text.trim() && block.type !== "image" && block.type !== "imageGallery") return null;
             if (block.type === "heading1") return <h1 key={block.id} className="mt-10 text-3xl font-extrabold text-[#1E293B]">{block.text}</h1>;
             if (block.type === "heading2") return <h2 key={block.id} className="mt-8 text-2xl font-extrabold text-[#1E293B]">{block.text}</h2>;
             if (block.type === "paragraph") return <p key={block.id} className="mt-5 whitespace-pre-wrap text-[15px] leading-8 text-[#334155]">{block.text}</p>;
             if (block.type === "callout") return <aside key={block.id} className={`mt-6 rounded-xl border-2 border-[#1E293B] p-5 text-sm leading-7 text-[#1E293B] ${block.calloutType === "tip" ? "bg-[#34D399]" : "bg-[#FBBF24]"}`}>{block.text}</aside>;
             if (block.type === "code") return <div key={block.id} className="mt-6 overflow-hidden rounded-xl border-2 border-[#1E293B] bg-[#111827]"><div className="flex items-center gap-2 border-b border-slate-600 bg-[#263246] px-4 py-3"><span className="h-3 w-3 rounded-full bg-[#FF5F57]" /><span className="h-3 w-3 rounded-full bg-[#FEBC2E]" /><span className="h-3 w-3 rounded-full bg-[#28C840]" /><span className="ml-2 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-300">{block.language || "text"}</span></div><pre className="overflow-x-auto p-5 text-sm leading-7 text-slate-100"><code>{block.text}</code></pre></div>;
             if (block.type === "image" && block.src) return <figure key={block.id} className="mt-7"><img src={block.src} alt={block.alt || "Hình ảnh minh họa"} className="max-h-[560px] w-full rounded-xl border-2 border-[#1E293B] object-contain" />{block.alt ? <figcaption className="mt-2 text-center text-xs text-[#64748B]">{block.alt}</figcaption> : null}</figure>;
+            if (block.type === "imageGallery") {
+              const images = (block.images ?? []).filter((image) => image.src);
+              return images.length ? <div key={block.id} className={`mt-7 grid gap-3 ${galleryGridClass(block.layout)}`}>{images.map((image, imageIndex) => <img key={`${block.id}-${imageIndex}`} src={image.src} alt={image.alt || "Hình ảnh minh họa"} className="aspect-[4/3] w-full rounded-xl border-2 border-[#1E293B] object-cover" />)}</div> : null;
+            }
             return null;
           })}
         </div>
@@ -110,17 +174,39 @@ function PreviewPane({ blocks, title, excerpt }: { blocks: EditorBlock[]; title:
   );
 }
 
-export function PostBlockEditor({ showPreview, previewTitle, previewExcerpt }: { showPreview: boolean; previewTitle: string; previewExcerpt: string }) {
-  const [blocks, setBlocks] = useState<EditorBlock[]>(initialBlocks);
+export function PostBlockEditor({ showPreview, previewTitle, previewExcerpt, mode = "article", initialContent }: { showPreview: boolean; previewTitle: string; previewExcerpt: string; mode?: PostEditorMode; initialContent?: string }) {
+  const [blocks, setBlocks] = useState<EditorBlock[]>(() => initialContent ? blocksFromContent(initialContent, mode) : initialBlocks(mode));
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [split, setSplit] = useState(52);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const blockOptions = mode === "news" ? newsBlockOptions : articleBlockOptions;
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   function updateBlock(id: string, patch: Partial<EditorBlock>) {
     setBlocks((current) => current.map((block) => (block.id === id ? { ...block, ...patch } : block)));
+  }
+
+  function updateGalleryImage(blockId: string, imageIndex: number, patch: Partial<GalleryImage>) {
+    setBlocks((current) => current.map((block) => {
+      if (block.id !== blockId) return block;
+      return {
+        ...block,
+        images: (block.images ?? []).map((image, index) => index === imageIndex ? { ...image, ...patch } : image),
+      };
+    }));
+  }
+
+  function moveGalleryImage(blockId: string, imageIndex: number, direction: -1 | 1) {
+    setBlocks((current) => current.map((block) => {
+      if (block.id !== blockId || !block.images) return block;
+      const target = imageIndex + direction;
+      if (target < 0 || target >= block.images.length) return block;
+      const images = [...block.images];
+      [images[imageIndex], images[target]] = [images[target], images[imageIndex]];
+      return { ...block, images };
+    }));
   }
 
   function moveBlock(id: string, direction: -1 | 1) {
@@ -172,6 +258,25 @@ export function PostBlockEditor({ showPreview, previewTitle, previewExcerpt }: {
     }
   }
 
+  async function uploadGalleryImage(blockId: string, imageIndex: number, file: File) {
+    const uploadId = `${blockId}:${imageIndex}`;
+    setUploadError(null);
+    setUploadingId(uploadId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/admin/post-images/upload", { method: "POST", body: formData });
+      const upload = (await response.json()) as { error?: string; key?: string };
+      if (!response.ok || !upload.key) throw new Error(upload.error ?? "Không thể tải hình ảnh lên.");
+      const path = upload.key.replace(/^post-images\//, "").split("/").map(encodeURIComponent).join("/");
+      updateGalleryImage(blockId, imageIndex, { src: `/api/post-images/${path}`, alt: file.name.replace(/\.[^.]+$/, "") });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Không thể tải hình ảnh lên.");
+    } finally {
+      setUploadingId(null);
+    }
+  }
+
   function renderBlock(block: EditorBlock, index: number) {
     return <article key={block.id} draggable onDragStart={() => setDraggedId(block.id)} onDragEnd={() => setDraggedId(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropBlock(block.id)} className={`rounded-xl border-2 bg-white p-4 ${draggedId === block.id ? "border-[#A78BFA] opacity-60" : "border-[#E2E8F0]"}`}>
       <div className="mb-3 flex items-center gap-2"><button type="button" className="cursor-grab rounded-md p-1.5 text-[#94A3B8] hover:bg-[#F1F5F9]" aria-label="Kéo để sắp xếp"><GripVertical className="h-5 w-5" /></button><span className="mr-auto text-xs font-extrabold uppercase tracking-wide text-[#64748B]">{blockOptions.find((option) => option.type === block.type)?.label}</span><button type="button" onClick={() => moveBlock(block.id, -1)} disabled={index === 0} className="rounded-md p-1.5 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-30" aria-label="Đưa khối lên"><ChevronUp className="h-4 w-4" /></button><button type="button" onClick={() => moveBlock(block.id, 1)} disabled={index === blocks.length - 1} className="rounded-md p-1.5 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-30" aria-label="Đưa khối xuống"><ChevronDown className="h-4 w-4" /></button><button type="button" onClick={() => setBlocks((current) => current.filter((item) => item.id !== block.id))} className="rounded-md p-1.5 text-[#BE123C] hover:bg-[#FFF1F2]" aria-label="Xóa khối"><Trash2 className="h-4 w-4" /></button></div>
@@ -180,6 +285,7 @@ export function PostBlockEditor({ showPreview, previewTitle, previewExcerpt }: {
       {block.type === "code" ? <div className="grid gap-3"><label className="grid max-w-xs gap-1 text-xs font-bold text-[#64748B]">Ngôn ngữ<select value={block.language} onChange={(event) => updateBlock(block.id, { language: event.target.value })} className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2 font-semibold outline-none focus:border-[#7C3AED]"><option value="typescript">TypeScript</option><option value="javascript">JavaScript</option><option value="bash">Bash</option><option value="json">JSON</option><option value="html">HTML</option><option value="css">CSS</option><option value="sql">SQL</option><option value="text">Văn bản</option></select></label><textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} rows={8} spellCheck={false} placeholder="Dán hoặc viết mã tại đây..." className="w-full resize-y rounded-lg border-2 border-[#1E293B] bg-[#111827] px-3 py-3 font-mono text-sm leading-6 text-slate-100 outline-none focus:border-[#A78BFA]" /></div> : null}
       {block.type === "callout" ? <div className="grid gap-3"><label className="grid max-w-xs gap-1 text-xs font-bold text-[#64748B]">Loại ghi chú<select value={block.calloutType} onChange={(event) => updateBlock(block.id, { calloutType: event.target.value as "tip" | "note" })} className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2 font-semibold outline-none focus:border-[#7C3AED]"><option value="note">Lưu ý</option><option value="tip">Mẹo hay</option></select></label><textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} rows={3} placeholder="Viết điều cần lưu ý..." className="w-full resize-y rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 text-sm outline-none focus:border-[#7C3AED]" /></div> : null}
       {block.type === "image" ? <div className="grid gap-3"><div className="flex flex-wrap items-center gap-3"><input ref={(node) => { fileInputs.current[block.id] = node; }} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" className="hidden" onChange={(event) => { const file = event.currentTarget.files?.[0]; if (file) void uploadImage(block.id, file); }} /><button type="button" disabled={uploadingId === block.id} onClick={() => fileInputs.current[block.id]?.click()} className="inline-flex items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-[#FBBF24] px-3 py-2 text-sm font-extrabold disabled:opacity-60"><Upload className="h-4 w-4" />{uploadingId === block.id ? "Đang tải ảnh..." : "Tải ảnh lên"}</button><span className="text-xs font-medium text-[#64748B]">JPG, PNG, WebP, GIF, AVIF · tối đa 10 MB</span></div><label className="grid gap-1 text-xs font-bold text-[#64748B]">Mô tả ảnh (alt text)<input value={block.alt ?? ""} onChange={(event) => updateBlock(block.id, { alt: event.target.value })} maxLength={240} placeholder="Mô tả ngắn gọn nội dung hình ảnh" className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal text-[#334155] outline-none focus:border-[#7C3AED]" /></label><label className="grid gap-1 text-xs font-bold text-[#64748B]">Hoặc dán URL ảnh<input value={block.src ?? ""} onChange={(event) => updateBlock(block.id, { src: event.target.value })} type="url" placeholder="https://..." className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal text-[#334155] outline-none focus:border-[#7C3AED]" /></label>{block.src ? <img src={block.src} alt={block.alt || "Xem trước hình ảnh"} className="max-h-96 rounded-lg border border-[#E2E8F0] object-contain" /> : null}</div> : null}
+      {block.type === "imageGallery" ? <div className="grid gap-3"><div className="flex flex-wrap items-end justify-between gap-3"><label className="grid gap-1 text-xs font-bold text-[#64748B]">Bố cục<select value={block.layout ?? "two"} onChange={(event) => updateBlock(block.id, { layout: event.target.value as ImageGalleryLayout })} className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2 font-semibold outline-none focus:border-[#7C3AED]"><option value="two">2 ảnh đều nhau</option><option value="three">3 ảnh trên một hàng</option><option value="featured">Ảnh chính và ảnh phụ</option></select></label><div className="flex gap-2"><button type="button" onClick={() => updateBlock(block.id, { images: [...(block.images ?? []), { src: "", alt: "" }] })} disabled={(block.images?.length ?? 0) >= 3} className="rounded-lg border-2 border-[#1E293B] bg-[#FBBF24] px-3 py-2 text-xs font-extrabold disabled:opacity-40">Thêm ảnh</button><button type="button" onClick={() => updateBlock(block.id, { images: (block.images ?? []).slice(0, -1) })} disabled={(block.images?.length ?? 0) <= 2} className="rounded-lg border-2 border-[#CBD5E1] bg-white px-3 py-2 text-xs font-extrabold disabled:opacity-40">Bớt ảnh</button></div></div><div className={`grid gap-3 ${galleryGridClass(block.layout)}`}>{(block.images ?? []).map((image, imageIndex) => { const fileInputId = `${block.id}:${imageIndex}`; return <div key={fileInputId} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3"><div className="mb-2 flex items-center justify-between"><span className="text-xs font-extrabold text-[#475569]">Ảnh {imageIndex + 1}</span><span className="flex gap-1"><button type="button" onClick={() => moveGalleryImage(block.id, imageIndex, -1)} disabled={imageIndex === 0} className="rounded p-1 text-[#64748B] hover:bg-white disabled:opacity-30" aria-label="Đưa ảnh lên trước"><ChevronUp className="h-3.5 w-3.5" /></button><button type="button" onClick={() => moveGalleryImage(block.id, imageIndex, 1)} disabled={imageIndex === (block.images?.length ?? 0) - 1} className="rounded p-1 text-[#64748B] hover:bg-white disabled:opacity-30" aria-label="Đưa ảnh về sau"><ChevronDown className="h-3.5 w-3.5" /></button></span></div><input ref={(node) => { fileInputs.current[fileInputId] = node; }} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" className="hidden" onChange={(event) => { const file = event.currentTarget.files?.[0]; if (file) void uploadGalleryImage(block.id, imageIndex, file); }} /><button type="button" disabled={uploadingId === fileInputId} onClick={() => fileInputs.current[fileInputId]?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E293B] bg-white px-2.5 py-2 text-xs font-extrabold disabled:opacity-60"><Upload className="h-3.5 w-3.5" />{uploadingId === fileInputId ? "Đang tải" : "Tải ảnh"}</button><label className="mt-2 grid gap-1 text-[11px] font-bold text-[#64748B]">URL ảnh<input value={image.src} onChange={(event) => updateGalleryImage(block.id, imageIndex, { src: event.target.value })} type="url" placeholder="https://..." className="rounded-lg border border-[#CBD5E1] px-2.5 py-2 text-xs font-normal text-[#334155] outline-none focus:border-[#7C3AED]" /></label><label className="mt-2 grid gap-1 text-[11px] font-bold text-[#64748B]">Alt text<input value={image.alt} onChange={(event) => updateGalleryImage(block.id, imageIndex, { alt: event.target.value })} maxLength={240} placeholder="Mô tả ảnh" className="rounded-lg border border-[#CBD5E1] px-2.5 py-2 text-xs font-normal text-[#334155] outline-none focus:border-[#7C3AED]" /></label>{image.src ? <img src={image.src} alt={image.alt || "Xem trước hình ảnh"} className="mt-2 aspect-[4/3] w-full rounded-lg object-cover" /> : null}</div>; })}</div></div> : null}
     </article>;
   }
 
@@ -188,5 +294,5 @@ export function PostBlockEditor({ showPreview, previewTitle, previewExcerpt }: {
     "--preview-width": `${100 - split}%`,
   } as CSSProperties;
 
-  return <section ref={workspaceRef} style={splitStyle} className="relative flex min-h-0 flex-1 overflow-hidden border-t-2 border-[#1E293B] bg-[#F8FAFC]"><input name="content" type="hidden" value={serializeBlocks(blocks)} readOnly /><div className={`${showPreview ? "hidden lg:block lg:w-[var(--editor-width)] lg:shrink-0" : "block flex-1"} min-h-0 overflow-y-auto px-4 py-6 pb-28 sm:px-8`}><div className="mx-auto max-w-3xl space-y-3">{blocks.map(renderBlock)}{uploadError ? <p role="alert" className="rounded-lg bg-[#FFF1F2] px-3 py-2 text-sm font-bold text-[#BE123C]">{uploadError}</p> : null}</div></div>{showPreview ? <><button type="button" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); resize(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) resize(event); }} className="relative z-10 hidden w-3 shrink-0 cursor-col-resize border-x border-[#CBD5E1] bg-[#EDE9FE] lg:block" aria-label="Kéo để thay đổi kích thước xem trước"><span className="absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7C3AED]" /></button><div className="min-h-0 w-full lg:w-[var(--preview-width)] lg:shrink-0"><PreviewPane blocks={blocks} title={previewTitle} excerpt={previewExcerpt} /></div></> : null}<div className="fixed bottom-5 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-2xl border-2 border-[#1E293B] bg-white p-2 shadow-[0_12px_0_rgba(30,41,59,0.16)]">{blockOptions.map(({ type, label, icon: Icon }) => <button key={type} type="button" onClick={() => setBlocks((current) => [...current, createBlock(type)])} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold text-[#334155] hover:bg-[#EDE9FE] hover:text-[#6D28D9]" title={`Thêm ${label}`}><Icon className="h-4 w-4" /><span className="hidden sm:inline">{label}</span></button>)}<span className="mx-1 h-7 w-px bg-[#CBD5E1]" /><span className="hidden shrink-0 px-2 text-[10px] font-bold text-[#64748B] sm:inline"><ListPlus className="mr-1 inline h-3.5 w-3.5" />Thêm khối</span></div></section>;
+  return <section ref={workspaceRef} style={splitStyle} className="relative flex min-h-0 flex-1 overflow-hidden border-t-2 border-[#1E293B] bg-[#F8FAFC]"><input name="content" type="hidden" value={serializeBlocks(blocks)} readOnly /><div className={`${showPreview ? "hidden lg:block lg:w-[var(--editor-width)] lg:shrink-0" : "block flex-1"} min-h-0 overflow-y-auto px-4 py-6 pb-28 sm:px-8`}><div className="mx-auto max-w-3xl space-y-3">{blocks.map(renderBlock)}{uploadError ? <p role="alert" className="rounded-lg bg-[#FFF1F2] px-3 py-2 text-sm font-bold text-[#BE123C]">{uploadError}</p> : null}</div></div>{showPreview ? <><button type="button" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); resize(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) resize(event); }} className="relative z-10 hidden w-3 shrink-0 cursor-col-resize border-x border-[#CBD5E1] bg-[#EDE9FE] lg:block" aria-label="Kéo để thay đổi kích thước xem trước"><span className="absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7C3AED]" /></button><div className="min-h-0 w-full lg:w-[var(--preview-width)] lg:shrink-0"><PreviewPane blocks={blocks} title={previewTitle} excerpt={previewExcerpt} mode={mode} /></div></> : null}<div className="fixed bottom-5 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-2xl border-2 border-[#1E293B] bg-white p-2 shadow-[0_12px_0_rgba(30,41,59,0.16)]">{blockOptions.map(({ type, label, icon: Icon }) => <button key={type} type="button" onClick={() => setBlocks((current) => [...current, createBlock(type)])} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold text-[#334155] hover:bg-[#EDE9FE] hover:text-[#6D28D9]" title={`Thêm ${label}`}><Icon className="h-4 w-4" /><span className="hidden sm:inline">{label}</span></button>)}<span className="mx-1 h-7 w-px bg-[#CBD5E1]" /><span className="hidden shrink-0 px-2 text-[10px] font-bold text-[#64748B] sm:inline"><ListPlus className="mr-1 inline h-3.5 w-3.5" />Thêm khối</span></div></section>;
 }

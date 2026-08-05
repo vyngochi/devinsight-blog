@@ -1,11 +1,12 @@
 import { auth } from "@/auth";
 import { requestResourceUpload } from "@/features/resources/server/resources.service";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (session?.user?.role !== "ADMIN")
+  if (!session?.user || !(await canUseAuthorPermission(session.user, "manageResources")))
     return Response.json({ error: "Bạn không có quyền tải tài nguyên lên." }, { status: 403 });
 
   try {

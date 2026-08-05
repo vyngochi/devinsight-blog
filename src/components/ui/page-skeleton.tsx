@@ -11,14 +11,14 @@ export function BlogPageSkeleton() {
         <SkeletonBlock className="mt-4 h-10 w-4/5 sm:h-12" />
         <SkeletonBlock className="mt-3 h-5 w-full max-w-xl" />
       </div>
-      <div className="mt-8 grid gap-3 rounded-2xl border-2 border-[#1E293B] bg-white p-4 shadow-pop-sm md:grid-cols-[minmax(0,1fr)_13rem_7rem] dark:border-slate-600 dark:bg-slate-900">
+      <div className="mt-8 grid gap-3 rounded-2xl border-2 border-[#1E293B] bg-white p-4 shadow-pop-sm md:grid-cols-[minmax(0,1fr)_13rem_7rem]">
         <SkeletonBlock className="h-11 w-full" />
         <SkeletonBlock className="h-11 w-full" />
         <SkeletonBlock className="h-11 w-full" />
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="rounded-2xl border-2 border-[#1E293B] bg-white p-5 shadow-pop-sm dark:border-slate-600 dark:bg-slate-900">
+          <div key={index} className="rounded-2xl border-2 border-[#1E293B] bg-white p-5 shadow-pop-sm">
             <div className="flex gap-2"><SkeletonBlock className="h-6 w-20" /><SkeletonBlock className="h-6 w-16" /></div>
             <SkeletonBlock className="mt-5 h-6 w-11/12" />
             <SkeletonBlock className="mt-3 h-4 w-full" />

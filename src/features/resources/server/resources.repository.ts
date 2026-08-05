@@ -45,8 +45,9 @@ export async function findPublicResourceBySlug(slug: string) {
   });
 }
 
-export async function findManagedResources() {
+export async function findManagedResources(restrictedUploaderId?: string) {
   return prisma.resources.findMany({
+    ...(restrictedUploaderId ? { where: { uploaded_by_id: restrictedUploaderId } } : {}),
     select: {
       id: true,
       slug: true,
@@ -106,10 +107,15 @@ export async function incrementResourceDownload(id: string) {
 export async function findResourceForDeletion(id: string) {
   return prisma.resources.findUnique({
     where: { id },
-    select: { id: true, title: true, file_key: true },
+    select: { id: true, title: true, file_key: true, uploaded_by_id: true },
   });
 }
 
-export async function deleteResourceById(id: string) {
+export async function deleteResourceById(id: string, restrictedUploaderId?: string) {
+  if (restrictedUploaderId) {
+    const result = await prisma.resources.deleteMany({ where: { id, uploaded_by_id: restrictedUploaderId } });
+    if (!result.count) throw new Error("Bạn không có quyền xóa tài nguyên này.");
+    return;
+  }
   return prisma.resources.delete({ where: { id } });
 }

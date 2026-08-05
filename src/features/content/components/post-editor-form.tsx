@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { ArrowLeft, Eye, FileText, Save, Send, Settings2 } from "lucide-react";
+import { ArrowLeft, Eye, Save, Send, Settings2 } from "lucide-react";
 import {
   EDITOR_BADGE_COLORS,
   EDITOR_POST_CATEGORIES,
@@ -12,15 +12,16 @@ import {
   savePostAction,
   type PostEditorState,
 } from "@/features/content/server/post-editor.actions";
+import type { EditorPostInitialData } from "@/features/content/editor-types";
 
 const initialState: PostEditorState = {};
 
-export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
+export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: string; initialData?: EditorPostInitialData }) {
   const [state, action, pending] = useActionState(savePostAction, initialState);
   const [showPreview, setShowPreview] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? "");
 
   return (
     <form
@@ -28,6 +29,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
       noValidate
       className="flex h-dvh min-h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#1E293B]"
     >
+      {initialData ? <input type="hidden" name="originalSlug" value={initialData.slug} /> : null}
       <header className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-[#1E293B] bg-[#FFFDF5] px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Link
@@ -41,7 +43,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-[#8B5CF6]">
               DEVINSIGHT WRITER
             </p>
-            <p className="truncate text-sm font-extrabold">Bài viết mới</p>
+            <p className="truncate text-sm font-extrabold">{initialData ? "Chỉnh sửa bài viết" : "Bài viết mới"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -51,7 +53,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             className={`inline-flex items-center gap-2 rounded-lg border-2 border-[#1E293B] px-3 py-2 text-xs font-extrabold ${showMetadata ? "bg-[#EDE9FE] text-[#6D28D9]" : "bg-white"}`}
           >
             <Settings2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Thông tin bài</span>
+            <span className="hidden sm:inline">{showMetadata ? "Ẩn thông tin" : "Thông tin bài"}</span>
           </button>
           <button
             type="button"
@@ -108,6 +110,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             <input
               name="slug"
               maxLength={180}
+              defaultValue={initialData?.slug}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
               placeholder="git-co-ban-cho-du-an-nhom"
             />
@@ -117,7 +120,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             <select
               required
               name="category"
-              defaultValue=""
+              defaultValue={initialData?.category ?? ""}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
             >
               <option value="" disabled>
@@ -148,6 +151,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             <input
               name="tags"
               maxLength={450}
+              defaultValue={initialData?.tags}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
               placeholder="git, github, teamwork"
             />
@@ -160,7 +164,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
               type="number"
               min="1"
               max="180"
-              defaultValue="5"
+              defaultValue={initialData?.readingTime ?? 5}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
             />
           </label>
@@ -170,7 +174,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
               required
               name="authorName"
               maxLength={120}
-              defaultValue={defaultAuthor}
+              defaultValue={initialData?.authorName ?? defaultAuthor}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
             />
           </label>
@@ -179,6 +183,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             <input
               name="authorRole"
               maxLength={160}
+              defaultValue={initialData?.authorRole}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
               placeholder="Software Engineering Student"
             />
@@ -187,7 +192,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             Màu nhãn
             <select
               name="badgeColor"
-              defaultValue="violet"
+              defaultValue={initialData?.badgeColor ?? "violet"}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
             >
               {EDITOR_BADGE_COLORS.map((color) => (
@@ -202,6 +207,7 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
             <input
               name="coverImage"
               type="url"
+              defaultValue={initialData?.coverImage}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
               placeholder="https://..."
             />
@@ -210,9 +216,11 @@ export function PostEditorForm({ defaultAuthor }: { defaultAuthor: string }) {
       </section>
 
       <PostBlockEditor
+        key={initialData?.slug ?? "new-post"}
         showPreview={showPreview}
         previewTitle={title}
         previewExcerpt={excerpt}
+        initialContent={initialData?.content}
       />
 
       {state.error ? (

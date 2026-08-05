@@ -16,6 +16,7 @@ type PostPersistenceInput = {
   readingTimeInMinutes: number;
   coverImage?: string;
   status: "DRAFT" | "PUBLISHED";
+  authorId?: string;
 };
 
 const publicPostSelect = {
@@ -29,6 +30,7 @@ const publicPostSelect = {
   author_name: true,
   author_role: true,
   badge_color: true,
+  view_count: true,
   published_at: true,
   created_at: true,
   updated_at: true,
@@ -50,8 +52,13 @@ function tagSlug(name: string) {
     .slice(0, 60);
 }
 
-export async function upsertDatabasePost(input: PostPersistenceInput) {
+export async function upsertDatabasePost(input: PostPersistenceInput, restrictedAuthorId?: string) {
   return prisma.$transaction(async (transaction) => {
+    if (restrictedAuthorId) {
+      const existing = await transaction.posts.findUnique({ where: { slug: input.slug }, select: { author_id: true } });
+      if (existing && existing.author_id !== restrictedAuthorId)
+        throw new Error("Bạn không có quyền ghi đè bài viết của tác giả khác.");
+    }
     const category = await transaction.categories.upsert({
       where: { slug: input.categorySlug },
       update: { name: input.categoryName },
@@ -106,10 +113,92 @@ export async function upsertDatabasePost(input: PostPersistenceInput) {
         status: input.status,
         published_at: publishedAt,
         category_id: category.id,
+        ...(input.authorId ? { author_id: input.authorId } : {}),
         post_tags: { create: tags.map((tag) => ({ tag_id: tag.id })) },
       },
       select: { slug: true, status: true },
     });
+  });
+}
+
+export async function updateDatabasePost(originalSlug: string, input: PostPersistenceInput, restrictedAuthorId?: string) {
+  return prisma.$transaction(async (transaction) => {
+    const existing = await transaction.posts.findFirst({
+      where: {
+        slug: originalSlug,
+        ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}),
+        NOT: { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
+      },
+      select: { id: true, published_at: true },
+    });
+    if (!existing) throw new Error("Không tìm thấy bài viết có thể chỉnh sửa.");
+
+    const category = await transaction.categories.upsert({
+      where: { slug: input.categorySlug },
+      update: { name: input.categoryName },
+      create: { name: input.categoryName, slug: input.categorySlug, description: categoryDescription(input.categoryName) },
+      select: { id: true },
+    });
+    const tags = await Promise.all(input.tags.map((tag) => transaction.tags.upsert({
+      where: { slug: tagSlug(tag) },
+      update: { name: tag },
+      create: { name: tag, slug: tagSlug(tag) },
+      select: { id: true },
+    })));
+
+    return transaction.posts.update({
+      where: { id: existing.id },
+      data: {
+        slug: input.slug,
+        title: input.title,
+        excerpt: input.excerpt,
+        content_mdx: input.contentMdx,
+        reading_time_min: input.readingTimeInMinutes,
+        cover_image: input.coverImage,
+        author_name: input.authorName,
+        author_role: input.authorRole,
+        badge_color: input.badgeColor,
+        status: input.status,
+        published_at: input.status === "PUBLISHED" ? existing.published_at ?? new Date() : null,
+        category_id: category.id,
+        post_tags: { deleteMany: {}, create: tags.map((tag) => ({ tag_id: tag.id })) },
+      },
+      select: { slug: true, status: true },
+    });
+  });
+}
+
+export async function findEditableDatabasePostBySlug(slug: string, kind: "article" | "news", restrictedAuthorId?: string) {
+  return prisma.posts.findFirst({
+    where: {
+      slug,
+      ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}),
+      NOT: [
+        { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
+        ...(kind === "news" ? [] : [{ post_tags: { some: { tags: { slug: "news" } } } }]),
+      ],
+      ...(kind === "news" ? { post_tags: { some: { tags: { slug: "news" } } } } : {}),
+    },
+    select: {
+      slug: true, title: true, excerpt: true, content_mdx: true, reading_time_min: true,
+      cover_image: true, author_name: true, author_role: true, badge_color: true, status: true,
+      categories: { select: { name: true } },
+      post_tags: { select: { tags: { select: { name: true, slug: true } } } },
+    },
+  });
+}
+
+export async function deleteEditableDatabasePostBySlug(slug: string, kind: "article" | "news", restrictedAuthorId?: string) {
+  return prisma.posts.deleteMany({
+    where: {
+      slug,
+      ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}),
+      NOT: [
+        { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
+        ...(kind === "news" ? [] : [{ post_tags: { some: { tags: { slug: "news" } } } }]),
+      ],
+      ...(kind === "news" ? { post_tags: { some: { tags: { slug: "news" } } } } : {}),
+    },
   });
 }
 
@@ -130,22 +219,43 @@ export async function findPublishedDatabasePosts() {
       status: "PUBLISHED",
       NOT: { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
     },
-    select: { ...publicPostSelect, view_count: true },
+    select: publicPostSelect,
     orderBy: [{ published_at: "desc" }, { created_at: "desc" }],
     take: 100,
   });
 }
 
-export async function findAdminPosts() {
+export async function findAdminPosts(restrictedAuthorId?: string) {
   return prisma.posts.findMany({
+    where: { post_tags: { none: { tags: { slug: "news" } } }, ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}) },
     select: {
       id: true,
       slug: true,
       title: true,
       status: true,
+      content_mdx: true,
       updated_at: true,
       published_at: true,
       categories: { select: { name: true } },
+    },
+    orderBy: { updated_at: "desc" },
+    take: 100,
+  });
+}
+
+export async function findAdminNewsPosts(restrictedAuthorId?: string) {
+  return prisma.posts.findMany({
+    where: { post_tags: { some: { tags: { slug: "news" } } }, ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}) },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      excerpt: true,
+      status: true,
+      content_mdx: true,
+      updated_at: true,
+      published_at: true,
+      cover_image: true,
     },
     orderBy: { updated_at: "desc" },
     take: 100,

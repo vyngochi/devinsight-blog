@@ -59,12 +59,15 @@ model posts {
   created_at       DateTime     @default(now()) @db.Timestamptz(6)
   updated_at       DateTime     @default(now()) @db.Timestamptz(6)
   category_id      String       @db.Uuid
+  author_id        String?      @db.Uuid
   comments         comments[]
   post_tags        post_tags[]
   post_views       post_views[]
   categories       categories   @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  author           User?        @relation("post_author", fields: [author_id], references: [id], onDelete: SetNull)
 
   @@index([category_id], map: "idx_posts_category_id")
+  @@index([author_id], map: "idx_posts_author_id")
   @@index([slug], map: "idx_posts_slug")
   @@index([status, published_at(sort: Desc)], map: "idx_posts_status_published_at")
 }
@@ -107,8 +110,19 @@ model User {
   resolved_community_reports     community_reports[]              @relation("community_report_resolver")
   community_notification_digests community_notification_digests[]
   uploaded_resources             resources[]
+  authored_posts                 posts[]                            @relation("post_author")
 
   @@map("users")
+}
+
+model author_role_permissions {
+  role                   user_role @id
+  can_view_own_analytics Boolean   @default(true)
+  can_write_posts        Boolean   @default(true)
+  can_write_news         Boolean   @default(true)
+  can_moderate_community Boolean   @default(true)
+  can_manage_resources   Boolean   @default(true)
+  updated_at             DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model community_questions {
@@ -261,6 +275,7 @@ enum post_status {
 
 enum user_role {
   USER
+  AUTHOR
   ADMIN
 }
 

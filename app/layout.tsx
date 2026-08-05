@@ -19,11 +19,11 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "DevInsight | Blog học lập trình và công nghệ cho sinh viên",
+    default: "DevInsight | Blog công nghệ và tin tức",
     template: "%s | DevInsight",
   },
   description:
-    "Blog kỹ thuật Việt Nam chia sẻ hướng dẫn lập trình, mẹo nhanh, tài nguyên hữu ích và tin công nghệ dành cho sinh viên.",
+    "Blog kỹ thuật Việt Nam thông tin về kiến thức công nghệ, mẹo nhanh và các bài viết dành cho cộng đồng yêu thích công nghệ.",
   applicationName: siteName,
   alternates: {
     canonical: "/",
@@ -101,6 +101,9 @@ export default function RootLayout({
       lang="vi"
       className={`${jakarta.variable} ${jetbrains.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="color-scheme" content="light" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#FFFDF5] text-[#1E293B] font-sans selection:bg-[#FBBF24] selection:text-[#1E293B]">
         <AuthProvider>{children}</AuthProvider>
       </body>

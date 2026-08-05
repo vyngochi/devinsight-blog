@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/auth";
+import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 import {
   createCommunitySlug,
   isCommunityTopic,
@@ -142,7 +143,7 @@ export async function reportCommunityContentAction(
 
 export async function moderateCommunityReportAction(formData: FormData) {
   const user = await requireCommunityUser();
-  if (user.role !== "ADMIN") throw new Error("Bạn không có quyền kiểm duyệt.");
+  if (!(await canUseAuthorPermission(user, "moderateCommunity"))) throw new Error("Bạn không có quyền kiểm duyệt.");
   const reportId = getTextField(formData.get("reportId"), "Báo cáo", 80);
   const action = formData.get("action");
   if (action !== "review" && action !== "hide" && action !== "dismiss")

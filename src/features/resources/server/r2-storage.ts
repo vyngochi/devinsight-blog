@@ -106,6 +106,27 @@ export async function uploadPostImageObject(input: {
   return { key };
 }
 
+export async function uploadAvatarObject(input: {
+  userId: string;
+  fileName: string;
+  mimeType: string;
+  body: Uint8Array;
+}) {
+  const config = requireR2Config();
+  const client = getR2Client(config);
+  const key = `avatars/${input.userId}/${randomUUID()}-${safeFileName(input.fileName)}`;
+  await client.send(
+    new PutObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+      ContentType: input.mimeType,
+      Body: input.body,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
+  return { key };
+}
+
 export async function createResourceAccessUrl(input: {
   key: string;
   fileName: string;
@@ -141,6 +162,20 @@ export async function createPostImageAccessUrl(key: string) {
   );
 }
 
+export async function createAvatarAccessUrl(key: string) {
+  const config = requireR2Config();
+  const client = getR2Client(config);
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+      ResponseContentDisposition: "inline",
+    }),
+    { expiresIn: 60 * 60 },
+  );
+}
+
 export async function deleteResourceObject(key: string) {
   const config = requireR2Config();
   const client = getR2Client(config);
@@ -150,4 +185,10 @@ export async function deleteResourceObject(key: string) {
       Key: key,
     }),
   );
+}
+
+export async function deleteAvatarObject(key: string) {
+  const config = requireR2Config();
+  const client = getR2Client(config);
+  await client.send(new DeleteObjectCommand({ Bucket: config.bucketName, Key: key }));
 }

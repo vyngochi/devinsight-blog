@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { CheckCircle2, CircleAlert, Database, KeyRound, Mail, Settings, ShieldCheck } from "lucide-react";
 import { getSystemConfigurationStatus } from "@/features/admin/server/admin.service";
+import { getAuthorPermissions } from "@/features/admin/server/author-permissions";
+import { AuthorPermissionsForm } from "@/features/admin/components/author-permissions-form";
+import { auth } from "@/auth";
+import { notFound } from "next/navigation";
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") notFound();
   const settings = getSystemConfigurationStatus();
+  const authorPermissions = await getAuthorPermissions();
   const configuredCount = settings.filter((setting) => setting.configured).length;
 
   return (
@@ -26,6 +33,8 @@ export default function AdminSettingsPage() {
           <strong className="rounded-full bg-white px-4 py-2 text-lg text-[#1E293B]">{configuredCount}/{settings.length}</strong>
         </div>
       </section>
+
+      <AuthorPermissionsForm permissions={authorPermissions} />
 
       <section className="grid gap-4 md:grid-cols-2">
         {settings.map((setting) => (

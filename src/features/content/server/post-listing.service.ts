@@ -15,9 +15,12 @@ export async function getPostListing(): Promise<PostListItem[]> {
     getDatabasePostSummaries(),
   ]);
   const posts = [...databasePosts, ...legacyPosts].sort(
-    (first, second) => Date.parse(second.publishedAt) - Date.parse(first.publishedAt),
+    (first, second) =>
+      Date.parse(second.publishedAt) - Date.parse(first.publishedAt),
   );
-  const viewCounts = await findPublishedPostViewCounts(posts.map((post) => post.slug));
+  const viewCounts = await findPublishedPostViewCounts(
+    posts.map((post) => post.slug),
+  );
 
   return posts.map((post) => ({
     ...post,

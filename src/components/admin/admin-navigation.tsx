@@ -6,25 +6,40 @@ import {
   FileArchive,
   FileText,
   Flag,
+  Newspaper,
   Settings,
   Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import type { user_role } from "@/generated/prisma/client";
+import type { AuthorPermissions } from "@/features/admin/server/author-permissions";
 
-const items = [
-  { href: "/admin", label: "Tổng quan", icon: BarChart3, exact: true },
-  { href: "/admin/users", label: "Người dùng", icon: Users },
-  { href: "/admin/posts", label: "Bài viết", icon: FileText },
-  { href: "/admin/community", label: "Kiểm duyệt", icon: Flag },
-  { href: "/admin/settings", label: "Cấu hình", icon: Settings },
-  { href: "/admin/resources", label: "Tài nguyên", icon: FileArchive },
+type NavigationItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  adminOnly?: boolean;
+  permission?: keyof AuthorPermissions;
+};
+
+const items: NavigationItem[] = [
+  { href: "/admin", label: "Tổng quan", icon: BarChart3, exact: true, permission: "viewOwnAnalytics" },
+  { href: "/admin/users", label: "Người dùng", icon: Users, adminOnly: true },
+  { href: "/admin/posts", label: "Bài viết", icon: FileText, permission: "writePosts" },
+  { href: "/admin/news", label: "Tin tức", icon: Newspaper, permission: "writeNews" },
+  { href: "/admin/community", label: "Kiểm duyệt", icon: Flag, permission: "moderateCommunity" },
+  { href: "/admin/settings", label: "Cấu hình", icon: Settings, adminOnly: true },
+  { href: "/admin/resources", label: "Tài nguyên", icon: FileArchive, permission: "manageResources" },
 ];
 
-export function AdminNavigation() {
+export function AdminNavigation({ role, permissions }: { role: user_role; permissions?: AuthorPermissions }) {
   const pathname = usePathname();
+  const visibleItems = items.filter((item) => role === "ADMIN" || (!item.adminOnly && (!item.permission || permissions?.[item.permission])));
   return (
     <nav className="flex gap-2 overflow-x-auto p-3 md:flex-col md:overflow-visible md:p-0">
-      {items.map(({ href, label, icon: Icon, exact }) => {
+      {visibleItems.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
         return (
           <Link

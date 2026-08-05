@@ -30,37 +30,37 @@ export default async function ResourcesPage({
   const resources = await getPublicResources({ query, topic });
 
   return (
-    <main className="bg-[#F8FAFC] py-8 dark:bg-slate-950 sm:py-10">
+    <main className="bg-[#F8FAFC] py-6 sm:py-8">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <section className="rounded-2xl border-2 border-[#1E293B] bg-[#EDE9FE] p-6 shadow-pop-sm dark:border-slate-600 dark:bg-violet-950/60 sm:p-8">
+        <section className="rounded-xl border border-[#C4B5FD] bg-[#EDE9FE] p-4 sm:p-5">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2 text-sm font-extrabold text-[#6D28D9] dark:text-violet-200">
-              <FileArchive className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-xs font-extrabold text-[#6D28D9]">
+              <FileArchive className="h-3.5 w-3.5" />
               Thư viện Tài nguyên
             </div>
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#1E293B] dark:text-white sm:text-4xl">
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E293B] sm:text-3xl">
               Tài liệu được chia sẻ từ DevInsight Team
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#475569] dark:text-slate-200 sm:text-base">
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-[#475569] sm:text-sm">
               Tài liệu, biểu mẫu và tài nguyên thực hành được đội ngũ DevInsight
               tải lên cho cộng đồng lập trình.
             </p>
           </div>
         </section>
-        <form className="mt-6 grid gap-3 rounded-2xl border border-[#CBD5E1] bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <form className="mt-4 grid gap-2 rounded-xl border border-[#CBD5E1] bg-white p-3 md:grid-cols-[minmax(0,1fr)_200px_auto]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
             <input
               name="q"
               defaultValue={query}
               placeholder="Tìm theo tên, mô tả hoặc tên tệp"
-              className="w-full rounded-lg border border-[#CBD5E1] bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#7C3AED] dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              className="h-9 w-full rounded-lg border border-[#CBD5E1] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#7C3AED]"
             />
           </label>
           <select
             name="topic"
             defaultValue={topic}
-            className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#7C3AED] dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+            className="h-9 rounded-lg border border-[#CBD5E1] bg-white px-3 text-xs font-semibold outline-none focus:border-[#7C3AED]"
           >
             <option value="">Tất cả chủ đề</option>
             {RESOURCE_TOPICS.map((item) => (
@@ -69,37 +69,37 @@ export default async function ResourcesPage({
               </option>
             ))}
           </select>
-          <button className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-[#1E293B] bg-[#FBBF24] px-4 py-2.5 text-sm font-extrabold text-[#1E293B] hover:bg-[#F59E0B] dark:border-slate-500">
-            <SlidersHorizontal className="h-4 w-4" />
+          <button className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#1E293B] bg-[#FBBF24] px-4 text-xs font-extrabold text-[#1E293B] hover:bg-[#F59E0B]">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
             Lọc tài nguyên
           </button>
         </form>
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="text-sm font-bold text-[#475569] dark:text-slate-300">
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <p className="text-xs font-bold text-[#475569]">
             {resources.length} tài nguyên phù hợp
           </p>
           {query || topic ? (
             <Link
               href="/resources"
-              className="text-sm font-bold text-[#6D28D9] hover:underline"
+              className="text-xs font-bold text-[#6D28D9] hover:underline"
             >
               Xóa bộ lọc
             </Link>
           ) : null}
         </div>
         {resources.length ? (
-          <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {resources.map((resource) => (
               <ResourceCard key={resource.id} resource={resource} />
             ))}
           </section>
         ) : (
-          <section className="mt-4 rounded-2xl border-2 border-dashed border-[#94A3B8] bg-white px-6 py-14 text-center dark:border-slate-600 dark:bg-slate-900">
-            <FileArchive className="mx-auto h-10 w-10 text-[#94A3B8]" />
-            <h2 className="mt-4 text-lg font-extrabold text-[#1E293B] dark:text-white">
+          <section className="mt-3 rounded-xl border border-dashed border-[#94A3B8] bg-white px-6 py-10 text-center">
+            <FileArchive className="mx-auto h-8 w-8 text-[#94A3B8]" />
+            <h2 className="mt-3 text-base font-extrabold text-[#1E293B]">
               Chưa có tài nguyên phù hợp
             </h2>
-            <p className="mt-2 text-sm text-[#64748B] dark:text-slate-300">
+            <p className="mt-1.5 text-xs text-[#64748B]">
               Hãy thử từ khóa khác hoặc quay lại sau khi quản trị viên cập nhật
               thư viện.
             </p>

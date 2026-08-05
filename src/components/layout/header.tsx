@@ -3,10 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronDown, LayoutDashboard, Menu, Search, X } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  Menu,
+  Search,
+  UserRound,
+  X,
+} from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
+import { UserAvatar } from "@/components/auth/user-avatar";
 import { GlobalSearchModal } from "@/components/search/global-search-modal";
 import { Button } from "@/components/ui/button";
 
@@ -36,7 +44,7 @@ export function Header() {
     `border-b border-[#E2E8F0] py-3 text-base font-bold ${active ? "text-[#8B5CF6]" : "text-[#1E293B] hover:text-[#8B5CF6]"}`;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b-2 border-[#1E293B] bg-[#FFFDF5]/95 backdrop-blur-md dark:border-slate-600 dark:bg-slate-950/95">
+    <header className="sticky top-0 z-50 w-full border-b-2 border-[#1E293B] bg-[#FFFDF5]/95 backdrop-blur-md">
       <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
           <Image
@@ -44,18 +52,18 @@ export function Header() {
             alt="DevInsight"
             width={40}
             height={40}
-            className="h-10 w-10 shrink-0 rounded-xl border-2 border-[#1E293B] object-cover shadow-pop-sm dark:border-slate-500"
+            className="h-10 w-10 shrink-0 rounded-xl border-2 border-[#1E293B] object-cover shadow-pop-sm"
           />
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <span className="truncate text-lg font-extrabold tracking-tight text-[#1E293B] dark:text-white">
+              <span className="truncate text-lg font-extrabold tracking-tight text-[#1E293B]">
                 DevInsight
               </span>
               <span className="hidden rounded-full border border-[#1E293B] bg-[#FBBF24] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#1E293B] sm:inline">
                 .io.vn
               </span>
             </div>
-            <span className="block truncate text-[11px] font-medium text-[#64748B] dark:text-slate-300">
+            <span className="block truncate text-[11px] font-medium text-[#64748B]">
               Học code, chia sẻ thật
             </span>
           </div>
@@ -74,7 +82,8 @@ export function Header() {
           <div className="relative">
             <button
               type="button"
-              onMouseEnter={() => setMoreOpen((value) => !value)}
+              onFocus={() => setMoreOpen(true)}
+              onBlur={() => setMoreOpen(false)}
               aria-expanded={moreOpen}
               className={`${desktopLinkClass(secondaryLinks.some((link) => isActive(link.href)))} inline-flex items-center gap-1`}
             >
@@ -84,13 +93,13 @@ export function Header() {
               />
             </button>
             {moreOpen ? (
-              <div className="absolute right-0 top-8 w-44 rounded-xl border-2 border-[#1E293B] bg-white p-1.5 shadow-pop-lg dark:border-slate-600 dark:bg-slate-900">
+              <div className="absolute right-0 top-8 w-44 rounded-xl border-2 border-[#1E293B] bg-white p-1.5 shadow-pop-lg">
                 {secondaryLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setMoreOpen(false)}
-                    className={`block rounded-lg px-3 py-2 text-sm font-bold ${isActive(link.href) ? "bg-[#EDE9FE] text-[#6D28D9] dark:bg-violet-950 dark:text-violet-200" : "text-[#1E293B] hover:bg-[#F1F5F9] dark:text-white dark:hover:bg-slate-800"}`}
+                    className={`block rounded-lg px-3 py-2 text-sm font-bold ${isActive(link.href) ? "bg-[#EDE9FE] text-[#6D28D9]" : "text-[#1E293B] hover:bg-[#F1F5F9]"}`}
                   >
                     {link.label}
                   </Link>
@@ -103,14 +112,27 @@ export function Header() {
           <button
             type="button"
             onClick={() => setGlobalSearchOpen(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-white px-2.5 text-xs font-semibold text-[#64748B] shadow-pop-sm hover:bg-[#F1F5F9] dark:border-slate-500 dark:bg-slate-900 dark:text-slate-300"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-white px-2.5 text-xs font-semibold text-[#64748B] shadow-pop-sm hover:bg-[#F1F5F9]"
             aria-label="Tìm kiếm"
           >
-            <Search className="h-4 w-4 text-[#1E293B] dark:text-white" />
+            <Search className="h-4 w-4 text-[#1E293B]" />
             <span className="hidden 2xl:inline">Tìm kiếm</span>
           </button>
           {session?.user ? (
             <>
+              <Link
+                href="/profile"
+                aria-label="Hồ sơ cá nhân"
+                title="Hồ sơ cá nhân"
+                className="rounded-full focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2"
+              >
+                <UserAvatar
+                  name={session.user.name}
+                  email={session.user.email}
+                  image={session.user.image}
+                  size="sm"
+                />
+              </Link>
               <Button
                 variant="outline"
                 size="sm"
@@ -118,12 +140,12 @@ export function Header() {
               >
                 Đăng xuất
               </Button>
-              {session.user.role === "ADMIN" ? (
+              {session.user.role !== "USER" ? (
                 <Link
                   href="/admin"
                   title="Trang quản trị"
                   aria-label="Trang quản trị"
-                  className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#1E293B] bg-[#FBBF24] text-[#1E293B] shadow-pop-sm hover:-translate-y-0.5 dark:border-slate-500"
+                  className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#1E293B] bg-[#FBBF24] text-[#1E293B] shadow-pop-sm hover:-translate-y-0.5"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                 </Link>
@@ -142,7 +164,7 @@ export function Header() {
         <button
           type="button"
           onClick={() => setMobileMenuOpen((value) => !value)}
-          className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[#1E293B] bg-white text-[#1E293B] shadow-pop-sm sm:hidden dark:border-slate-500 dark:bg-slate-900 dark:text-white"
+          className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[#1E293B] bg-white text-[#1E293B] shadow-pop-sm sm:hidden"
           aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
         >
           {mobileMenuOpen ? (
@@ -153,16 +175,16 @@ export function Header() {
         </button>
       </div>
       {mobileMenuOpen ? (
-        <div className="border-t-2 border-[#1E293B] bg-[#FFFDF5] px-6 pb-6 pt-3 dark:border-slate-600 dark:bg-slate-950 sm:hidden">
+        <div className="border-t-2 border-[#1E293B] bg-[#FFFDF5] px-6 pb-6 pt-3 sm:hidden">
           <button
             type="button"
             onClick={() => {
               setMobileMenuOpen(false);
               setGlobalSearchOpen(true);
             }}
-            className="mb-2 flex w-full items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-white px-3 py-2.5 text-left text-sm font-bold text-[#475569] dark:border-slate-500 dark:bg-slate-900 dark:text-slate-300"
+            className="mb-2 flex w-full items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-white px-3 py-2.5 text-left text-sm font-bold text-[#475569]"
           >
-            <Search className="h-4 w-4 text-[#1E293B] dark:text-white" />
+            <Search className="h-4 w-4 text-[#1E293B]" />
             Tìm kiếm toàn trang
           </button>
           <nav className="flex flex-col">
@@ -181,6 +203,15 @@ export function Header() {
           <div className="mt-5 flex flex-col gap-3">
             {session?.user ? (
               <>
+                <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    icon={<UserRound className="h-4 w-4" />}
+                  >
+                    Hồ sơ cá nhân
+                  </Button>
+                </Link>
                 {session.user.role === "ADMIN" ? (
                   <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
                     <Button

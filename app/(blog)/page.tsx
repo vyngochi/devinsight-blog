@@ -32,7 +32,7 @@ export default async function HomePage() {
       <JsonLd data={siteSchema} />
       <HeroSection />
       <TechStrip />
-      <BentoFeatures />
+      <BentoFeatures posts={posts} />
       <LatestPosts posts={posts} />
       <NewsletterSection />
     </div>

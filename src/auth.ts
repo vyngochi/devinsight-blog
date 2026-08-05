@@ -5,6 +5,7 @@ import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import type { AppProviders } from "@auth/core/providers";
 import { promoteUserToAdmin } from "@/features/auth/server/auth.repository";
+import { findUserProfileById } from "@/features/profile/server/profile.repository";
 import { verifyEmailLoginCode } from "@/features/auth/server/email-otp.service";
 import { prisma } from "@/server/database/prisma";
 
@@ -34,7 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   pages: { signIn: "/" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role =
@@ -43,12 +44,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? "ADMIN"
             : user.role;
       }
+      if (trigger === "update" && token.id) {
+        const profile = await findUserProfileById(token.id as string);
+        if (profile) {
+          token.name = profile.name;
+          token.picture = profile.image;
+          token.role = profile.role;
+        }
+      }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as typeof session.user.role;
+        session.user.name = token.name;
+        session.user.image = token.picture;
       }
       return session;
     },

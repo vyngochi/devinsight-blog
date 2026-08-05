@@ -5,13 +5,14 @@ import {
   fetchDashboardMetrics,
 } from "@/features/analytics/server/analytics.repository";
 import { syncPostFromContent } from "@/features/content/server/post-sync.service";
+import { findPublishedDatabasePostBySlug } from "@/features/content/server/post.repository";
 
 function dateOnly(date = new Date()) {
   return new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
 }
 
 export async function recordPostView(slug: string, visitorHash: string) {
-  const post = await syncPostFromContent(slug);
+  const post = await syncPostFromContent(slug) ?? await findPublishedDatabasePostBySlug(slug);
   if (!post) return { counted: false, reason: "not_found" as const };
 
   const counted = await createUniquePostView(post.id, visitorHash, dateOnly());

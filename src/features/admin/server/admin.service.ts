@@ -4,6 +4,7 @@ import type { user_role } from "@/generated/prisma/client";
 import { getDashboardMetrics } from "@/features/analytics/server/analytics.service";
 import {
   fetchAdminPlatformMetrics,
+  fetchAuthorDashboardMetrics,
   findUsers,
   findUserForRoleChange,
   setUserRole,
@@ -21,6 +22,8 @@ export async function getAdminDashboardData() {
   ]);
   return { analytics, platform };
 }
+
+export const getAuthorDashboardData = fetchAuthorDashboardMetrics;
 
 export function getSystemConfigurationStatus() {
   return [

@@ -101,22 +101,22 @@ export function GlobalSearchModal({
         role="dialog"
         aria-modal="true"
         aria-label="Tìm kiếm toàn trang"
-        className="w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-[#1E293B] bg-white shadow-pop-lg dark:border-slate-600 dark:bg-slate-900"
+        className="w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-[#1E293B] bg-white shadow-pop-lg"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-3 border-b-2 border-[#1E293B] px-4 py-3 dark:border-slate-600">
+        <div className="flex items-center gap-3 border-b-2 border-[#1E293B] px-4 py-3">
           <Search className="h-5 w-5 shrink-0 text-[#6D28D9]" />
           <input
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Tìm bài viết, tài nguyên, câu hỏi..."
-            className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[#1E293B] outline-none placeholder:text-[#94A3B8] dark:text-white"
+            className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[#1E293B] outline-none placeholder:text-[#94A3B8]"
           />
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-[#475569] hover:bg-[#F1F5F9] dark:text-slate-300 dark:hover:bg-slate-800"
+            className="grid h-8 w-8 place-items-center rounded-lg text-[#475569] hover:bg-[#F1F5F9]"
             aria-label="Đóng tìm kiếm"
           >
             <X className="h-5 w-5" />
@@ -126,10 +126,10 @@ export function GlobalSearchModal({
           {!hasQuery ? (
             <div className="px-4 py-10 text-center">
               <Search className="mx-auto h-8 w-8 text-[#A78BFA]" />
-              <p className="mt-3 font-extrabold text-[#1E293B] dark:text-white">
+              <p className="mt-3 font-extrabold text-[#1E293B]">
                 Tìm mọi nội dung trên DevInsight
               </p>
-              <p className="mt-1 text-sm text-[#64748B] dark:text-slate-300">
+              <p className="mt-1 text-sm text-[#64748B]">
                 Nhập ít nhất 2 ký tự để tìm trong bài viết, tài nguyên và cộng
                 đồng.
               </p>
@@ -153,24 +153,24 @@ export function GlobalSearchModal({
                   <Link
                     href={result.href}
                     onClick={onClose}
-                    className="flex gap-3 rounded-xl px-3 py-3 hover:bg-[#F1F5F9] dark:hover:bg-slate-800"
+                    className="flex gap-3 rounded-xl px-3 py-3 hover:bg-[#F1F5F9]"
                   >
-                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#1E293B] bg-[#EDE9FE] text-[#6D28D9] dark:border-slate-500 dark:bg-violet-950 dark:text-violet-200">
+                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#1E293B] bg-[#EDE9FE] text-[#6D28D9]">
                       <ResultIcon type={result.type} />
                     </span>
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-extrabold text-[#1E293B] dark:text-white">
+                        <span className="font-extrabold text-[#1E293B]">
                           {result.title}
                         </span>
-                        <span className="font-mono text-[11px] font-bold text-[#7C3AED] dark:text-violet-200">
+                        <span className="font-mono text-[11px] font-bold text-[#7C3AED]">
                           {result.type}
                         </span>
                       </span>
-                      <span className="mt-1 block line-clamp-2 text-sm text-[#64748B] dark:text-slate-300">
+                      <span className="mt-1 block line-clamp-2 text-sm text-[#64748B]">
                         {result.description}
                       </span>
-                      <span className="mt-1 block text-xs font-semibold text-[#475569] dark:text-slate-400">
+                      <span className="mt-1 block text-xs font-semibold text-[#475569]">
                         {result.meta}
                       </span>
                     </span>
@@ -179,12 +179,12 @@ export function GlobalSearchModal({
               ))}
             </ul>
           ) : (
-            <p className="px-4 py-10 text-center text-sm font-semibold text-[#64748B] dark:text-slate-300">
+            <p className="px-4 py-10 text-center text-sm font-semibold text-[#64748B]">
               Không tìm thấy nội dung phù hợp với “{query.trim()}”.
             </p>
           )}
         </div>
-        <div className="border-t border-[#E2E8F0] px-4 py-2 text-xs font-semibold text-[#64748B] dark:border-slate-700 dark:text-slate-400">
+        <div className="border-t border-[#E2E8F0] px-4 py-2 text-xs font-semibold text-[#64748B]">
           Nhấn Esc để đóng
         </div>
       </section>
