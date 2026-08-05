@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { Prisma } from "@/generated/prisma/client";
 import {
   createCommunityAnswer,
@@ -18,9 +20,7 @@ export function getCommunityQuestions(input: { query?: string; topic?: string })
   return findPublicQuestions(input);
 }
 
-export function getCommunityQuestion(slug: string) {
-  return findPublicQuestionBySlug(slug);
-}
+export const getCommunityQuestion = cache((slug: string) => findPublicQuestionBySlug(slug));
 
 export function publishCommunityQuestion(input: {
   slug: string;

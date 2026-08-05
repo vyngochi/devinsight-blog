@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { PostSummary } from "@/types/blog";
 import { EDITOR_BADGE_COLORS, EDITOR_POST_CATEGORIES, editorCategorySlugs } from "@/features/content/post-editor-policy";
 import {
@@ -112,13 +114,13 @@ export async function getDatabasePostSummaries() {
   return (await findPublishedDatabasePosts()).map(asPostSummary);
 }
 
-export async function getDatabasePostBySlug(slug: string) {
+export const getDatabasePostBySlug = cache(async (slug: string) => {
   const post = await findPublishedDatabasePostBySlug(slug);
   if (!post) return null;
   return {
     ...asPostSummary({ ...post, view_count: 0 }),
     content: post.content_mdx,
   };
-}
+});
 
 export const getAdminPostList = findAdminPosts;

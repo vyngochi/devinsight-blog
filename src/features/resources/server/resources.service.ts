@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   MAX_RESOURCE_FILE_SIZE,
   isResourceTopic,
@@ -100,9 +102,7 @@ export async function publishResource(input: {
 export const getPublicResources = findPublicResources;
 export const getManagedResources = findManagedResources;
 
-export async function getPublicResource(slug: string) {
-  return findPublicResourceBySlug(slug);
-}
+export const getPublicResource = cache((slug: string) => findPublicResourceBySlug(slug));
 
 export async function getResourceAccessUrl(slug: string, download: boolean) {
   const resource = await findPublicResourceBySlug(slug);
