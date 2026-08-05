@@ -7,7 +7,12 @@ import {
   findUsers,
   findUserForRoleChange,
   setUserRole,
+  replaceRoleChangeCode,
+  consumeRoleChangeCode,
 } from "@/features/admin/server/admin.repository";
+import { randomInt } from "node:crypto";
+import { hashEmailLoginCode } from "@/features/auth/server/email-otp-token";
+import { sendRoleChangeCodeEmail } from "@/server/mail/smtp-mailer";
 
 export async function getAdminDashboardData() {
   const [analytics, platform] = await Promise.all([
@@ -69,7 +74,7 @@ export async function getManagedUsers(input: {
   return findUsers(input);
 }
 
-export async function changeManagedUserRole(input: {
+export async function requestManagedUserRoleChange(input: {
   actorId: string;
   userId: string;
   role: user_role;
@@ -83,6 +88,39 @@ export async function changeManagedUserRole(input: {
     target.email.toLowerCase() === process.env.ADMIN_EMAIL.trim().toLowerCase()
   )
     throw new Error("Không thể thay đổi quyền của email quản trị chính.");
+
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const identifier = `role-change:${target.id}:${input.role}`;
+  
+  await replaceRoleChangeCode({
+    identifier,
+    token: hashEmailLoginCode(target.email, code),
+    expires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+  });
+
+  await sendRoleChangeCodeEmail(target.email, code, input.role);
+}
+
+export async function confirmManagedUserRoleChange(input: {
+  actorId: string;
+  userId: string;
+  role: user_role;
+  code: string;
+}) {
+  const target = await findUserForRoleChange(input.userId);
+  if (!target) throw new Error("Không tìm thấy người dùng.");
+  if (target.id === input.actorId)
+    throw new Error("Bạn không thể tự thay đổi quyền của mình.");
+
+  const identifier = `role-change:${target.id}:${input.role}`;
+  const isValid = await consumeRoleChangeCode({
+    identifier,
+    token: hashEmailLoginCode(target.email, input.code),
+  });
+
+  if (!isValid) {
+    throw new Error("Mã xác nhận không hợp lệ hoặc đã hết hạn.");
+  }
 
   await setUserRole(target.id, input.role);
 }

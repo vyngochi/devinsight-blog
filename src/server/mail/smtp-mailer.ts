@@ -111,3 +111,45 @@ export async function sendCommunityDigestEmail(input: {
     `,
   });
 }
+
+export async function sendRoleChangeCodeEmail(email: string, code: string, newRole: string) {
+  const configuration = getSmtpConfiguration();
+  if (!configuration) throw new Error("SMTP is not configured.");
+
+  const transport = nodemailer.createTransport(configuration);
+  await transport.sendMail({
+    from: configuration.from,
+    to: email,
+    subject: "Xác nhận thay đổi quyền DevInsight",
+    text: `Quản trị viên đang yêu cầu đổi quyền của bạn thành ${newRole}. Mã xác nhận của bạn là ${code}. Mã có hiệu lực trong 10 phút.`,
+    html: `
+      <div style="font-family: system-ui, -apple-system, sans-serif; background-color: #FFFDF5; color: #1E293B; padding: 40px 20px; line-height: 1.6;">
+        <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 2px solid #1E293B; border-radius: 12px; overflow: hidden; box-shadow: 4px 4px 0px 0px #1E293B;">
+          <div style="background-color: #F472B6; border-bottom: 2px solid #1E293B; padding: 24px; text-align: center;">
+            <h2 style="margin: 0; color: #1E293B; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Bảo mật Tài khoản</h2>
+          </div>
+          <div style="padding: 32px 24px;">
+            <p style="font-size: 16px; margin-top: 0;">Chào bạn,</p>
+            <p style="font-size: 16px;">Quản trị viên DevInsight đang yêu cầu thay đổi quyền tài khoản của bạn thành <strong style="color: #8B5CF6;">${newRole}</strong>.</p>
+            <p style="font-size: 16px;">Vui lòng cung cấp mã xác nhận dưới đây cho quản trị viên để hoàn tất:</p>
+            
+            <div style="margin: 32px 0; text-align: center;">
+              <span style="display: inline-block; background-color: #FBBF24; color: #1E293B; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 16px 32px; border-radius: 8px; border: 2px solid #1E293B; box-shadow: 2px 2px 0px 0px #1E293B;">
+                ${code}
+              </span>
+            </div>
+            
+            <p style="font-size: 14px; font-weight: 700; color: #1E293B; background-color: #F1F5F9; padding: 12px; border-radius: 8px; border: 1px dashed #1E293B;">
+              ⚠️ Mã có hiệu lực trong 10 phút. Không chia sẻ mã này nếu bạn chưa được thông báo trước về việc đổi quyền.
+            </p>
+            
+            <hr style="border: none; border-top: 2px dashed #CBD5E1; margin: 32px 0;" />
+            <p style="font-size: 14px; color: #64748B; margin-bottom: 0;">
+              DevInsight System.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  });
+}

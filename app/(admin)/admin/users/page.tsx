@@ -1,6 +1,6 @@
 import { Search, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { auth } from "@/auth";
-import { updateManagedUserRole } from "@/features/admin/server/admin.actions";
+import { RoleEditor } from "./role-editor";
 import { getManagedUsers } from "@/features/admin/server/admin.service";
 
 const dateFormat = new Intl.DateTimeFormat("vi-VN", {
@@ -95,16 +95,11 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
                     <p>{user.emailVerified ? "Email đã xác thực" : "Chưa xác thực"}</p>
                     <p className="mt-1">{user._count.comments} bình luận · {user._count.accounts} liên kết</p>
                   </div>
-                  <form action={updateManagedUserRole} className="flex items-center gap-2">
-                    <input type="hidden" name="userId" value={user.id} />
-                    <select name="role" defaultValue={user.role} disabled={locked} aria-label={`Vai trò của ${user.email}`} className="min-w-0 flex-1 rounded-lg border-2 border-[#1E293B] bg-[#FFFDF5] px-2 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60">
-                      <option value="USER">USER</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
-                    <button disabled={locked} title={locked ? "Tài khoản này được bảo vệ" : "Lưu vai trò"} className="rounded-lg border-2 border-[#1E293B] bg-white px-2 py-2 text-xs font-bold shadow-pop-sm hover:bg-[#FBBF24] disabled:cursor-not-allowed disabled:opacity-50">
-                      Lưu
-                    </button>
-                  </form>
+                  <RoleEditor
+                    userId={user.id}
+                    initialRole={user.role}
+                    locked={locked}
+                  />
                 </article>
               );
             })}

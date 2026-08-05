@@ -91,3 +91,32 @@ export async function findUserForRoleChange(userId: string) {
 export async function setUserRole(userId: string, role: user_role) {
   await prisma.user.update({ where: { id: userId }, data: { role } });
 }
+
+export async function replaceRoleChangeCode(input: {
+  identifier: string;
+  token: string;
+  expires: Date;
+}) {
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: input.identifier },
+  });
+  await prisma.verificationToken.create({ data: input });
+}
+
+export async function consumeRoleChangeCode(input: {
+  identifier: string;
+  token: string;
+}) {
+  const verification = await prisma.verificationToken.findFirst({
+    where: {
+      identifier: input.identifier,
+      token: input.token,
+      expires: { gt: new Date() },
+    },
+  });
+  if (!verification) return false;
+
+  await prisma.verificationToken.delete({ where: { token: verification.token } });
+  return true;
+}
+
