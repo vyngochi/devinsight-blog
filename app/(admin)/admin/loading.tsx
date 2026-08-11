@@ -1,5 +1,9 @@
-import { AdminPageSkeleton } from "@/components/ui/page-skeleton";
+import Loader from "@/components/ui/loader";
 
 export default function Loading() {
-  return <AdminPageSkeleton />;
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <Loader />
+    </div>
+  );
 }

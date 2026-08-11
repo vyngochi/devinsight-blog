@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock, Eye } from "lucide-react";
 import { StickerCard } from "@/components/ui/sticker-card";
 import { Button, Badge } from "@/components/ui/button";
-import type { PostSummary } from "@/types/blog";
+import type { PostListItem } from "@/features/content/server/post-listing.service";
 
 const categories = ["Tất cả", "Học tập", "Mẹo nhanh", "Tài nguyên", "Khám phá"];
 
-export function LatestPosts({ posts }: { posts: PostSummary[] }) {
+export function LatestPosts({ posts }: { posts: PostListItem[] }) {
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const filteredPosts =
     activeCategory === "Tất cả"
@@ -78,6 +78,10 @@ export function LatestPosts({ posts }: { posts: PostSummary[] }) {
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4 text-[#8B5CF6]" />
                     {post.readingTime}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-4 h-4 text-[#8B5CF6]" />
+                    {post.readerCount}
                   </span>
                 </span>
                 <Link

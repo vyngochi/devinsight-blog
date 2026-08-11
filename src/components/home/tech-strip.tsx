@@ -26,10 +26,10 @@ export function TechStrip() {
   return (
     <section
       id="chu-de"
-      className="w-full border-y-2 border-[#1E293B] bg-[#1E293B] py-7 text-white"
+      className="w-full border-y-2 border-[#1E293B] bg-[#1E293B] py-7 text-white flex items-center"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {topics.map(({ name, description, icon: Icon, color }) => (
             <Link
               key={name}
