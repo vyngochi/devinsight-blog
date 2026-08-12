@@ -6,9 +6,9 @@ import { getProviders, getSession, signIn } from "next-auth/react";
 import { Check, LoaderCircle, Mail, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-type AuthModalProps = { open: boolean; onClose: () => void };
+type AuthModalProps = { open: boolean; onClose: () => void; callbackUrl?: string };
 
-export function AuthModal({ open, onClose }: AuthModalProps) {
+export function AuthModal({ open, onClose, callbackUrl }: AuthModalProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -81,7 +81,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     }
 
     const session = await getSession();
-    router.replace(session?.user.role === "ADMIN" ? "/admin" : "/");
+    router.replace(callbackUrl ?? (session?.user.role === "ADMIN" ? "/admin" : "/"));
+    router.refresh();
     onClose();
   }
 
@@ -118,7 +119,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button
-            onClick={() => signIn("google", { callbackUrl: "/auth/redirect" })}
+            onClick={() => signIn("google", { callbackUrl: callbackUrl ?? "/auth/redirect" })}
             disabled={!hasGoogle}
             className="rounded-xl border-2 border-[#1E293B] bg-white px-3 py-3 text-sm font-bold text-[#1E293B] shadow-pop-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -128,7 +129,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             Google
           </button>
           <button
-            onClick={() => signIn("facebook", { callbackUrl: "/auth/redirect" })}
+            onClick={() => signIn("facebook", { callbackUrl: callbackUrl ?? "/auth/redirect" })}
             disabled={!hasFacebook}
             className="rounded-xl border-2 border-[#1E293B] bg-[#1877F2] px-3 py-3 text-sm font-bold text-white shadow-pop-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
