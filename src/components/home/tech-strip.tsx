@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Compass, FolderOpen, UsersRound } from "lucide-react";
+import { Compass, FolderOpen, UsersRound } from "lucide-react";
 
 const topics = [
   {

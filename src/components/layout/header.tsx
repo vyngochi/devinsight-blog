@@ -41,11 +41,11 @@ export function Header() {
   const desktopLinkClass = (active: boolean) =>
     `relative whitespace-nowrap py-1 text-sm font-bold transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-[#8B5CF6] ${active ? "text-[#8B5CF6] after:w-full" : "text-[#1E293B] after:w-0 hover:text-[#8B5CF6] hover:after:w-full"}`;
   const mobileLinkClass = (active: boolean) =>
-    `border-b border-[#E2E8F0] py-3 text-base font-bold ${active ? "text-[#8B5CF6]" : "text-[#1E293B] hover:text-[#8B5CF6]"}`;
+    `border-b border-[#E2E8F0] py-3 text-base font-bold sm:py-2 sm:text-sm ${active ? "text-[#8B5CF6]" : "text-[#1E293B] hover:text-[#8B5CF6]"}`;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-[#1E293B] bg-[#FFFDF5]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-start gap-3 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
           <Image
             src="/Brand/Logo.png"
@@ -68,7 +68,7 @@ export function Header() {
             </span>
           </div>
         </Link>
-        <nav className="hidden items-center gap-5 xl:flex">
+        <nav className="ml-auto hidden items-center gap-5 xl:flex">
           {primaryLinks.map((link) => (
             <Link
               key={link.href}
@@ -108,7 +108,7 @@ export function Header() {
             ) : null}
           </div>
         </nav>
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="ml-auto hidden items-center gap-2 sm:flex xl:ml-0">
           <button
             type="button"
             onClick={() => setGlobalSearchOpen(true)}
@@ -164,7 +164,7 @@ export function Header() {
         <button
           type="button"
           onClick={() => setMobileMenuOpen((value) => !value)}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 border-[#1E293B] bg-white text-[#1E293B] shadow-pop-sm xl:hidden"
+          className="ml-auto grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 border-[#1E293B] bg-white text-[#1E293B] shadow-pop-sm sm:ml-0 xl:hidden"
           aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
         >
           {mobileMenuOpen ? (
@@ -175,7 +175,7 @@ export function Header() {
         </button>
       </div>
       {mobileMenuOpen ? (
-        <div className="border-t-2 border-[#1E293B] bg-[#FFFDF5] px-6 pb-6 pt-3 xl:hidden">
+        <div className="border-t-2 border-[#1E293B] bg-[#FFFDF5] px-6 pb-6 pt-3 sm:absolute sm:right-6 sm:top-full sm:mt-2 sm:w-80 sm:rounded-xl sm:border-2 sm:p-4 sm:shadow-pop-lg lg:right-8 xl:hidden">
           <button
             type="button"
             onClick={() => {
