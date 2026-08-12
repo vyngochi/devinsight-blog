@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import type { user_role } from "@/generated/prisma/client";
 import { requestManagedUserRoleChange, confirmManagedUserRoleChange } from "@/features/admin/server/admin.service";
 import { AUTHOR_PERMISSION_KEYS, saveAuthorPermissions, type AuthorPermissions } from "@/features/admin/server/author-permissions";
@@ -14,10 +14,6 @@ async function requireAdmin() {
     throw new Error("Bạn không có quyền thực hiện thao tác này.");
   }
   return session.user;
-}
-
-export async function logoutAdmin() {
-  await signOut({ redirectTo: "/" });
 }
 
 export async function requestRoleChangeAction(formData: FormData) {

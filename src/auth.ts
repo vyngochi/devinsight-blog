@@ -35,7 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   pages: { signIn: "/" },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role =
@@ -44,7 +44,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? "ADMIN"
             : user.role;
       }
-      if (trigger === "update" && token.id) {
+
+      // The profile is the source of truth for fields displayed throughout the
+      // app. Refresh it whenever Auth.js reads the JWT so long-lived sessions do
+      // not keep a stale name or avatar in the header.
+      if (token.id) {
         const profile = await findUserProfileById(token.id as string);
         if (profile) {
           token.name = profile.name;

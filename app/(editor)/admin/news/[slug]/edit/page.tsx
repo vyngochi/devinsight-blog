@@ -13,5 +13,5 @@ export default async function EditNewsPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const news = await getAdminEditablePost(slug, "news", session.user.role === "AUTHOR" ? session.user.id : undefined);
   if (!news) notFound();
-  return <NewsEditorForm key={`edit-news-${news.slug}`} defaultAuthor={session.user.name || session.user.email || "DevInsight"} initialData={news as NewsEditorInitialData} />;
+  return <NewsEditorForm key={`edit-news-${news.slug}`} draftOwnerId={session.user.id} defaultAuthor={session.user.name || session.user.email || "DevInsight"} initialData={news as NewsEditorInitialData} />;
 }

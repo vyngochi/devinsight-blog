@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ExternalLink, LogOut, ShieldCheck } from "lucide-react";
-import { logoutAdmin } from "@/features/admin/server/admin.actions";
+import { ExternalLink, ShieldCheck } from "lucide-react";
+import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 import { AdminNavigation } from "@/components/admin/admin-navigation";
 import type { user_role } from "@/generated/prisma/client";
 import type { AuthorPermissions } from "@/features/admin/server/author-permissions";
@@ -40,13 +40,12 @@ export function AdminShell({ children, admin, permissions }: AdminShellProps) {
 
         <div className="mt-auto rounded-xl border-2 border-[#1E293B] bg-white p-3">
           <p className="truncate text-sm font-bold">{displayName}</p>
-          <p className="mt-1 font-mono text-[10px] text-[#64748B]">{admin.role}</p>
-          <form action={logoutAdmin} className="mt-3">
-            <button className="flex w-full items-center gap-2 rounded-lg bg-[#F1F5F9] px-3 py-2 text-xs font-bold hover:bg-[#FBBF24]">
-              <LogOut className="h-3.5 w-3.5" />
-              Đăng xuất
-            </button>
-          </form>
+          <p className="mt-1 font-mono text-[10px] text-[#64748B]">
+            {admin.role}
+          </p>
+          <div className="mt-3">
+            <AdminLogoutButton />
+          </div>
         </div>
       </aside>
 
@@ -58,7 +57,9 @@ export function AdminShell({ children, admin, permissions }: AdminShellProps) {
                 {isAuthor ? "DEVINSIGHT AUTHOR" : "DEVINSIGHT ADMIN"}
               </p>
               <p className="truncate text-sm font-bold text-[#64748B]">
-                {isAuthor ? "Nội dung và hoạt động của bạn" : "Quản trị toàn nền tảng"}
+                {isAuthor
+                  ? "Nội dung và hoạt động của bạn"
+                  : "Quản trị toàn nền tảng"}
               </p>
             </div>
             <Link
@@ -73,7 +74,9 @@ export function AdminShell({ children, admin, permissions }: AdminShellProps) {
             <AdminNavigation role={admin.role} permissions={permissions} />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

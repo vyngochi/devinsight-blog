@@ -13,5 +13,5 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const post = await getAdminEditablePost(slug, "article", session.user.role === "AUTHOR" ? session.user.id : undefined);
   if (!post) notFound();
-  return <PostEditorForm key={`edit-post-${post.slug}`} defaultAuthor={session.user.name || session.user.email || "DevInsight"} initialData={post as EditorPostInitialData} />;
+  return <PostEditorForm key={`edit-post-${post.slug}`} draftOwnerId={session.user.id} defaultAuthor={session.user.name || session.user.email || "DevInsight"} initialData={post as EditorPostInitialData} />;
 }

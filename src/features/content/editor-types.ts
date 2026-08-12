@@ -14,7 +14,6 @@ export type EditorPostInitialData = {
 };
 
 export type NewsEditorInitialData = Omit<EditorPostInitialData, "category" | "authorRole" | "badgeColor" | "readingTime"> & {
-  sourceName: string;
-  sourceUrl: string;
+  sources: Array<{ name: string; url: string }>;
   reportedAtLabel: string;
 };

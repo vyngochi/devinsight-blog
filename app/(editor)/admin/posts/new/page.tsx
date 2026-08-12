@@ -8,5 +8,5 @@ export const dynamic = "force-dynamic";
 export default async function NewPostPage() {
   const session = await auth();
   if (!session?.user || !(await canUseAuthorPermission(session.user, "writePosts"))) redirect("/");
-  return <PostEditorForm key="new-post" defaultAuthor={session.user.name || session.user.email || "DevInsight"} />;
+  return <PostEditorForm key="new-post" draftOwnerId={session.user.id} defaultAuthor={session.user.name || session.user.email || "DevInsight"} />;
 }

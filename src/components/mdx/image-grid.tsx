@@ -15,7 +15,7 @@ export function ImageGrid({
 }) {
   const selectedLayout = layouts[layout] ?? layouts.two;
   return (
-    <div className={`my-7 grid gap-3 [&>p]:m-0 [&_img]:h-full [&_img]:w-full [&_img]:rounded-xl [&_img]:object-cover ${selectedLayout}`}>
+    <div className={`my-7 grid items-start gap-3 [&>figure]:m-0 [&>p]:m-0 [&_img]:aspect-[4/3] [&_img]:h-auto [&_img]:w-full [&_img]:rounded-xl [&_img]:object-cover ${selectedLayout}`}>
       {children}
     </div>
   );

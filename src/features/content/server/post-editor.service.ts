@@ -47,11 +47,11 @@ function validateControlledMdx(value: string) {
   if (/^\s*(import|export)\s/m.test(withoutCodeFences) || /\{[^}]*\}/.test(withoutCodeFences))
     throw new Error("Nội dung không được chứa import, export hoặc biểu thức JavaScript.");
   const withoutSupportedComponents = withoutCodeFences.replace(
-    /<\/?(?:Callout(?:\s+type="(?:tip|note)")?|ImageGrid(?:\s+layout="(?:two|three|featured)")?)\s*>/g,
+    /<\/?(?:Callout(?:\s+type="(?:tip|note|info|warning|success|danger)"(?:\s+tone="(?:violet|blue|green|yellow|red)")?(?:\s+title="[^"]*")?)?|ImageGrid(?:\s+layout="(?:two|three|featured)")?|Figure(?:\s+(?:src|alt|caption|sourceName|sourceUrl)="[^"]*")*\s*\/?)\s*>/g,
     "",
   );
   if (/<\/?[A-Za-z]/.test(withoutSupportedComponents))
-    throw new Error("Chỉ hỗ trợ MDX component <Callout> và <ImageGrid>.");
+    throw new Error("Nội dung chứa MDX component không được hỗ trợ.");
   return content;
 }
 
@@ -117,7 +117,7 @@ export async function saveDatabasePost(input: {
     badgeColor,
     readingTimeInMinutes: readingTime,
     coverImage: coverImage || undefined,
-    status: input.intent === "publish" ? "PUBLISHED" as const : "DRAFT" as const,
+    status: input.intent === "publish" || input.intent === "save-published" ? "PUBLISHED" as const : "DRAFT" as const,
     authorId: input.authorId,
   };
   return input.originalSlug
@@ -135,30 +135,31 @@ function formatNewsDate(value: string) {
 
 function buildNewsContent(input: {
   content: string;
-  sourceName: string;
-  sourceUrl: string;
+  sources: Array<{ name: string; url: string }>;
   reportedAt: string;
   existingReportedAtLabel?: string;
+  requireSource: boolean;
 }) {
-  const sourceName = input.sourceName.trim();
-  const sourceUrl = input.sourceUrl.trim();
-  if (sourceName.length > 120) throw new Error("Tên nguồn không được quá 120 ký tự.");
-  if (sourceUrl) {
+  if (input.sources.length > 5) throw new Error("Mỗi tin chỉ hỗ trợ tối đa 5 nguồn.");
+  const sources = input.sources.map((source) => ({ name: source.name.trim(), url: source.url.trim() }));
+  if (input.requireSource && (!sources.length || sources.some((source) => !source.name || !source.url)))
+    throw new Error("Tin tức cần có đầy đủ tên nguồn và link nguồn trước khi xuất bản.");
+  for (const sourceItem of sources) {
+    if (sourceItem.name.length > 120) throw new Error("Tên nguồn không được quá 120 ký tự.");
+    if (!sourceItem.name && !sourceItem.url) continue;
+    if (!sourceItem.name || !sourceItem.url) throw new Error("Mỗi nguồn cần có đầy đủ tên và link.");
     let source: URL;
     try {
-      source = new URL(sourceUrl);
+      source = new URL(sourceItem.url);
     } catch {
       throw new Error("Link nguồn không hợp lệ.");
     }
     if (!/^https?:$/.test(source.protocol)) throw new Error("Link nguồn phải dùng http hoặc https.");
-    if (!sourceName) throw new Error("Hãy nhập tên nguồn khi có link nguồn.");
-  } else if (sourceName) {
-    throw new Error("Hãy nhập link nguồn tương ứng.");
   }
 
   const reportedAt = formatNewsDate(input.reportedAt) ?? input.existingReportedAtLabel?.trim();
   const metadata = [
-    sourceUrl ? `> Nguồn: [${sourceName.replace(/[\[\]]/g, "")}](${sourceUrl})` : "",
+    ...sources.filter((source) => source.name && source.url).map((source, index) => `> Nguồn ${index + 1}: [${source.name.replace(/[\[\]]/g, "")}](${source.url})`),
     reportedAt ? `> Thời điểm tin: ${reportedAt}` : "",
   ].filter(Boolean);
   return metadata.length ? `${input.content.trim()}\n\n${metadata.join("\n")}` : input.content;
@@ -175,8 +176,7 @@ export async function saveDatabaseNews(input: {
   tags: string;
   authorName: string;
   coverImage: string;
-  sourceName: string;
-  sourceUrl: string;
+  sources: Array<{ name: string; url: string }>;
   reportedAt: string;
   existingReportedAtLabel?: string;
   intent: string;
@@ -191,7 +191,7 @@ export async function saveDatabaseNews(input: {
     title: input.title,
     slug: input.slug,
     excerpt: input.excerpt,
-    content: buildNewsContent(input),
+    content: buildNewsContent({ ...input, requireSource: input.intent === "publish" }),
     category: "Khám phá",
     tags,
     authorName: input.authorName,
@@ -206,20 +206,19 @@ export async function saveDatabaseNews(input: {
 function splitNewsMetadata(content: string) {
   const lines = content.trimEnd().split("\n");
   let reportedAtLabel = "";
-  let sourceName = "";
-  let sourceUrl = "";
+  const sources: Array<{ name: string; url: string }> = [];
   const reportedAt = lines.at(-1)?.match(/^> Thời điểm tin:\s*(.+)$/);
   if (reportedAt) {
     reportedAtLabel = reportedAt[1];
     lines.pop();
   }
-  const source = lines.at(-1)?.match(/^> Nguồn:\s*\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/);
-  if (source) {
-    sourceName = source[1];
-    sourceUrl = source[2];
+  while (true) {
+    const source = lines.at(-1)?.match(/^> Nguồn(?: \d+)?:\s*\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/);
+    if (!source) break;
+    sources.unshift({ name: source[1], url: source[2] });
     lines.pop();
   }
-  return { content: lines.join("\n").trimEnd(), sourceName, sourceUrl, reportedAtLabel };
+  return { content: lines.join("\n").trimEnd(), sources, reportedAtLabel };
 }
 
 export async function getAdminEditablePost(slug: string, kind: "article" | "news", restrictedAuthorId?: string): Promise<EditorPostInitialData | NewsEditorInitialData | null> {
@@ -249,8 +248,7 @@ export async function getAdminEditablePost(slug: string, kind: "article" | "news
   return {
     ...base,
     content: metadata.content,
-    sourceName: metadata.sourceName,
-    sourceUrl: metadata.sourceUrl,
+    sources: metadata.sources,
     reportedAtLabel: metadata.reportedAtLabel,
   };
 }

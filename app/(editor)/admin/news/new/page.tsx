@@ -8,5 +8,5 @@ export const dynamic = "force-dynamic";
 export default async function NewNewsPage() {
   const session = await auth();
   if (!session?.user || !(await canUseAuthorPermission(session.user, "writeNews"))) redirect("/");
-  return <NewsEditorForm key="new-news" defaultAuthor={session.user.name || session.user.email || "DevInsight"} />;
+  return <NewsEditorForm key="new-news" draftOwnerId={session.user.id} defaultAuthor={session.user.name || session.user.email || "DevInsight"} />;
 }

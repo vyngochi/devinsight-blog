@@ -5,10 +5,23 @@ import { auth } from "@/auth";
 import { deleteAdminEditablePost, saveDatabaseNews, saveDatabasePost } from "@/features/content/server/post-editor.service";
 import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
-export type PostEditorState = { error?: string; success?: string; slug?: string };
+export type PostEditorState = { error?: string; success?: string; slug?: string; status?: "DRAFT" | "PUBLISHED" };
 
 function field(formData: FormData, name: string) {
   return typeof formData.get(name) === "string" ? String(formData.get(name)) : "";
+}
+
+function newsSources(formData: FormData) {
+  try {
+    const value = JSON.parse(field(formData, "sources")) as unknown;
+    if (!Array.isArray(value)) return [];
+    return value.map((source) => ({
+      name: typeof source?.name === "string" ? source.name : "",
+      url: typeof source?.url === "string" ? source.url : "",
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function savePostAction(_: PostEditorState, formData: FormData): Promise<PostEditorState> {
@@ -23,7 +36,7 @@ export async function savePostAction(_: PostEditorState, formData: FormData): Pr
       title: field(formData, "title"), slug: field(formData, "slug"), excerpt: field(formData, "excerpt"), content: field(formData, "content"), category: field(formData, "category"), tags: field(formData, "tags"), authorName: field(formData, "authorName"), authorRole: field(formData, "authorRole"), readingTime: field(formData, "readingTime"), coverImage: field(formData, "coverImage"), badgeColor: field(formData, "badgeColor"), intent: field(formData, "intent"),
     });
     revalidatePath("/"); revalidatePath("/posts"); revalidatePath(`/posts/${post.slug}`); if (originalSlug && originalSlug !== post.slug) revalidatePath(`/posts/${originalSlug}`); revalidatePath("/admin/posts");
-    return { success: post.status === "PUBLISHED" ? "Bài viết đã được xuất bản." : "Bản nháp đã được lưu.", slug: post.slug };
+    return { success: post.status === "PUBLISHED" ? "Bài viết đã được xuất bản." : "Bản nháp đã được lưu.", slug: post.slug, status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT" };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Không thể lưu bài viết." };
   }
@@ -45,8 +58,7 @@ export async function saveNewsAction(_: PostEditorState, formData: FormData): Pr
       tags: field(formData, "tags"),
       authorName: field(formData, "authorName"),
       coverImage: field(formData, "coverImage"),
-      sourceName: field(formData, "sourceName"),
-      sourceUrl: field(formData, "sourceUrl"),
+      sources: newsSources(formData),
       reportedAt: field(formData, "reportedAt"),
       existingReportedAtLabel: field(formData, "existingReportedAtLabel") || undefined,
       intent: field(formData, "intent"),
@@ -60,6 +72,7 @@ export async function saveNewsAction(_: PostEditorState, formData: FormData): Pr
     return {
       success: post.status === "PUBLISHED" ? "Tin tức đã được xuất bản." : "Bản nháp tin tức đã được lưu.",
       slug: post.slug,
+      status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Không thể lưu tin tức." };

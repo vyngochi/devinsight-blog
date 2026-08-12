@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
-import { ArrowLeft, Eye, Save, Send, Settings2 } from "lucide-react";
+import { useActionState, useEffect, useRef, useState, type MouseEvent } from "react";
+import { ArrowLeft, CheckCircle2, Circle, Eye, Save, Send, Settings2, ShieldCheck } from "lucide-react";
 import {
   EDITOR_BADGE_COLORS,
   EDITOR_POST_CATEGORIES,
@@ -13,20 +13,88 @@ import {
   type PostEditorState,
 } from "@/features/content/server/post-editor.actions";
 import type { EditorPostInitialData } from "@/features/content/editor-types";
+import { useEditorSafety } from "@/features/content/components/use-editor-safety";
+import { useLocalEditorDraft } from "@/features/content/components/use-local-editor-draft";
 
 const initialState: PostEditorState = {};
 
-export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: string; initialData?: EditorPostInitialData }) {
+export function PostEditorForm({ defaultAuthor, draftOwnerId, initialData }: { defaultAuthor: string; draftOwnerId: string; initialData?: EditorPostInitialData }) {
   const [state, action, pending] = useActionState(savePostAction, initialState);
   const [showPreview, setShowPreview] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? "");
+  const [category, setCategory] = useState(initialData?.category ?? "");
+  const [coverImage, setCoverImage] = useState(initialData?.coverImage ?? "");
+  const [editorContent, setEditorContent] = useState(initialData?.content);
+  const [editorRevision, setEditorRevision] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { dirty, changeVersion, markDirty, markSaved, confirmNavigation } = useEditorSafety();
+  const currentStatus = state.status ?? initialData?.status ?? "DRAFT";
+  const {
+    recoveryDraft,
+    lastAutoSavedAt,
+    clearLocalDraft,
+    dismissRecovery,
+    acceptRecovery,
+  } = useLocalEditorDraft({
+    storageKey: `devinsight:editor:article:${draftOwnerId}:${initialData?.slug ?? "new"}`,
+    formRef,
+    dirty,
+    changeVersion,
+  });
+
+  useEffect(() => {
+    if (state.success) {
+      markSaved();
+      clearLocalDraft();
+    }
+  }, [state, markSaved, clearLocalDraft]);
+
+  function restoreLocalDraft() {
+    if (!recoveryDraft || !formRef.current) return;
+    const { fields } = recoveryDraft;
+    setTitle(fields.title ?? "");
+    setExcerpt(fields.excerpt ?? "");
+    setCategory(fields.category ?? "");
+    setCoverImage(fields.coverImage ?? "");
+    for (const [name, value] of Object.entries(fields)) {
+      if (["title", "excerpt", "category", "coverImage", "content", "originalSlug"].includes(name)) continue;
+      const control = formRef.current.elements.namedItem(name);
+      if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement) {
+        control.value = value;
+      }
+    }
+    setEditorContent(fields.content);
+    setEditorRevision((current) => current + 1);
+    acceptRecovery();
+    markDirty();
+  }
+
+  function validateBeforeSubmit(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form;
+    if (!form || form.checkValidity()) return;
+    event.preventDefault();
+    setShowMetadata(true);
+    requestAnimationFrame(() => {
+      form.querySelector<HTMLElement>(":invalid")?.focus();
+      form.reportValidity();
+    });
+  }
+
+  const checklist = [
+    { label: "Có tiêu đề", done: title.trim().length > 0 },
+    { label: "Có mô tả ngắn", done: excerpt.trim().length > 0 },
+    { label: "Đã chọn chuyên mục", done: Boolean(category) },
+    { label: "Có ảnh cover", done: Boolean(coverImage.trim()) },
+  ];
 
   return (
     <form
+      ref={formRef}
       action={action}
       noValidate
+      onChangeCapture={markDirty}
       className="flex h-dvh min-h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#1E293B]"
     >
       {initialData ? <input type="hidden" name="originalSlug" value={initialData.slug} /> : null}
@@ -34,6 +102,9 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/admin/posts"
+            onClick={(event) => {
+              if (!confirmNavigation()) event.preventDefault();
+            }}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#1E293B] bg-white hover:bg-[#EDE9FE]"
             aria-label="Quay lại danh sách bài viết"
           >
@@ -44,6 +115,9 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
               DEVINSIGHT WRITER
             </p>
             <p className="truncate text-sm font-extrabold">{initialData ? "Chỉnh sửa bài viết" : "Bài viết mới"}</p>
+            <p className={`mt-0.5 text-[10px] font-bold ${dirty ? "text-[#B45309]" : "text-[#64748B]"}`}>
+              {pending ? "Đang lưu..." : dirty ? lastAutoSavedAt ? `Chưa lưu lên server · đã sao lưu lúc ${new Date(lastAutoSavedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}` : "Có thay đổi chưa lưu" : currentStatus === "PUBLISHED" ? "Đã xuất bản" : "Bản nháp đã lưu"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -68,16 +142,19 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
           <button
             disabled={pending}
             name="intent"
-            value="draft"
-            className="hidden items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-white px-3 py-2 text-xs font-extrabold disabled:opacity-60 sm:inline-flex"
+            value={currentStatus === "PUBLISHED" ? "save-published" : "draft"}
+            onClick={validateBeforeSubmit}
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-white px-3 py-2 text-xs font-extrabold disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
-            Lưu nháp
+            <span className="hidden sm:inline">{currentStatus === "PUBLISHED" ? "Lưu thay đổi" : "Lưu nháp"}</span>
+            <span className="sm:hidden">Lưu</span>
           </button>
           <button
             disabled={pending}
             name="intent"
             value="publish"
+            onClick={validateBeforeSubmit}
             className="inline-flex items-center gap-2 rounded-lg border-2 border-[#1E293B] bg-[#FBBF24] px-3 py-2 text-xs font-extrabold disabled:opacity-60"
           >
             <Send className="h-4 w-4" />
@@ -86,9 +163,28 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
         </div>
       </header>
 
+      {recoveryDraft ? (
+        <div role="status" className="z-20 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#FCD34D] bg-[#FFFBEB] px-4 py-3 text-xs text-[#78350F] sm:px-6">
+          <p className="font-bold">Tìm thấy bản sao cục bộ lúc {new Date(recoveryDraft.savedAt).toLocaleString("vi-VN")}.</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={dismissRecovery} className="rounded-lg border border-[#D97706] bg-white px-3 py-1.5 font-bold">Bỏ bản tạm</button>
+            <button type="button" onClick={restoreLocalDraft} className="rounded-lg border border-[#1E293B] bg-[#FBBF24] px-3 py-1.5 font-extrabold text-[#1E293B]">Khôi phục</button>
+          </div>
+        </div>
+      ) : null}
+
       <section
         className={`relative z-20 shrink-0 border-b-2 border-[#1E293B] bg-white px-4 py-5 shadow-pop-sm sm:px-6 ${showMetadata ? "" : "hidden"}`}
       >
+        <div className="mx-auto mb-4 flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#C4B5FD] bg-[#F5F3FF] px-4 py-3 text-xs">
+          <span className="inline-flex items-center gap-2 font-extrabold text-[#5B21B6]"><ShieldCheck className="h-4 w-4" aria-hidden="true" />Checklist xuất bản</span>
+          {checklist.map((item) => (
+            <span key={item.label} className={`inline-flex items-center gap-1.5 font-bold ${item.done ? "text-[#166534]" : "text-[#64748B]"}`}>
+              {item.done ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : <Circle className="h-3.5 w-3.5" aria-hidden="true" />}
+              {item.label}
+            </span>
+          ))}
+        </div>
         <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2">
           <label className="grid gap-1.5 text-sm font-bold text-[#334155] md:col-span-2">
             Tiêu đề
@@ -120,7 +216,8 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
             <select
               required
               name="category"
-              defaultValue={initialData?.category ?? ""}
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
             >
               <option value="" disabled>
@@ -207,7 +304,8 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
             <input
               name="coverImage"
               type="url"
-              defaultValue={initialData?.coverImage}
+              value={coverImage}
+              onChange={(event) => setCoverImage(event.target.value)}
               className="rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-normal outline-none focus:border-[#7C3AED]"
               placeholder="https://..."
             />
@@ -216,11 +314,12 @@ export function PostEditorForm({ defaultAuthor, initialData }: { defaultAuthor: 
       </section>
 
       <PostBlockEditor
-        key={initialData?.slug ?? "new-post"}
+        key={`${initialData?.slug ?? "new-post"}:${editorRevision}`}
         showPreview={showPreview}
         previewTitle={title}
         previewExcerpt={excerpt}
-        initialContent={initialData?.content}
+        initialContent={editorContent}
+        onDirty={markDirty}
       />
 
       {state.error ? (
