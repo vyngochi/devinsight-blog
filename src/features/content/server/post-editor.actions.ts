@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import { deleteAdminEditablePost, saveDatabaseNews, saveDatabasePost } from "@/features/content/server/post-editor.service";
 import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
@@ -35,6 +35,7 @@ export async function savePostAction(_: PostEditorState, formData: FormData): Pr
       restrictedAuthorId: session.user.role === "AUTHOR" ? session.user.id : undefined,
       title: field(formData, "title"), slug: field(formData, "slug"), excerpt: field(formData, "excerpt"), content: field(formData, "content"), category: field(formData, "category"), tags: field(formData, "tags"), authorName: field(formData, "authorName"), authorRole: field(formData, "authorRole"), readingTime: field(formData, "readingTime"), coverImage: field(formData, "coverImage"), badgeColor: field(formData, "badgeColor"), intent: field(formData, "intent"),
     });
+    revalidateTag("public-post-listing", "max");
     revalidatePath("/"); revalidatePath("/posts"); revalidatePath(`/posts/${post.slug}`); if (originalSlug && originalSlug !== post.slug) revalidatePath(`/posts/${originalSlug}`); revalidatePath("/admin/posts");
     return { success: post.status === "PUBLISHED" ? "Bài viết đã được xuất bản." : "Bản nháp đã được lưu.", slug: post.slug, status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT" };
   } catch (error) {
@@ -63,6 +64,7 @@ export async function saveNewsAction(_: PostEditorState, formData: FormData): Pr
       existingReportedAtLabel: field(formData, "existingReportedAtLabel") || undefined,
       intent: field(formData, "intent"),
     });
+    revalidateTag("public-post-listing", "max");
     revalidatePath("/");
     revalidatePath("/posts");
     revalidatePath(`/posts/${post.slug}`);
@@ -89,6 +91,7 @@ export async function deletePostAction(_: PostEditorState, formData: FormData): 
     const permission = kind === "article" ? "writePosts" : "writeNews";
     if (!(await canUseAuthorPermission(session.user, permission))) throw new Error("Bạn không có quyền xóa nội dung này.");
     await deleteAdminEditablePost(slug, kind, session.user.role === "AUTHOR" ? session.user.id : undefined);
+    revalidateTag("public-post-listing", "max");
     revalidatePath("/");
     revalidatePath("/posts");
     revalidatePath(`/posts/${slug}`);

@@ -38,6 +38,24 @@ const publicPostSelect = {
   post_tags: { select: { tags: { select: { name: true } } } },
 } as const;
 
+const publicPostSummarySelect = {
+  id: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  reading_time_min: true,
+  cover_image: true,
+  author_name: true,
+  author_role: true,
+  badge_color: true,
+  view_count: true,
+  published_at: true,
+  created_at: true,
+  updated_at: true,
+  categories: { select: { name: true } },
+  post_tags: { select: { tags: { select: { name: true } } } },
+} as const;
+
 function categoryDescription(name: string) {
   return `Bài viết ${name}`;
 }
@@ -219,7 +237,7 @@ export async function findPublishedDatabasePosts() {
       status: "PUBLISHED",
       NOT: { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
     },
-    select: publicPostSelect,
+    select: publicPostSummarySelect,
     orderBy: [{ published_at: "desc" }, { created_at: "desc" }],
     take: 100,
   });

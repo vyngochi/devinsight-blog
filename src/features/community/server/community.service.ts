@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 
 import type { Prisma } from "@/generated/prisma/client";
 import {
@@ -16,8 +17,15 @@ import {
   resolveCommunityReport,
 } from "@/features/community/server/community.repository";
 
+const getCachedCommunityQuestions = unstable_cache(
+  (query: string, topic: string) =>
+    findPublicQuestions({ query: query || undefined, topic: topic || undefined }),
+  ["public-community-questions"],
+  { tags: ["public-community"], revalidate: 60 },
+);
+
 export function getCommunityQuestions(input: { query?: string; topic?: string }) {
-  return findPublicQuestions(input);
+  return getCachedCommunityQuestions(input.query?.trim() ?? "", input.topic ?? "");
 }
 
 export const getCommunityQuestion = cache((slug: string) => findPublicQuestionBySlug(slug));

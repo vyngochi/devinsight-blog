@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { ArrowLeft, Clock, Eye, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -29,7 +30,7 @@ type ArticleData = {
   readerCount: number;
 };
 
-async function getArticle(slug: string) {
+const getArticle = cache(async (slug: string) => {
   const databasePost = await getDatabasePostBySlug(slug);
   if (databasePost) return { data: databasePost as ArticleData, content: databasePost.content };
   const legacyPost = getPostBySlug(slug);
@@ -39,7 +40,7 @@ async function getArticle(slug: string) {
     data: { ...legacyPost.metadata, readerCount: viewCounts.get(slug) ?? 0 } as ArticleData,
     content: legacyPost.default,
   };
-}
+});
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const article = await getArticle((await params).slug);

@@ -1,29 +1,31 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { getAllPosts } from "@/features/content/post-registry";
 import { getDatabasePostSummaries } from "@/features/content/server/post-editor.service";
-import { findPublishedPostViewCounts } from "@/features/content/server/post-listing.repository";
 import type { PostSummary } from "@/types/blog";
 
 export type PostListItem = PostSummary & {
   readerCount: number;
 };
 
-export async function getPostListing(): Promise<PostListItem[]> {
+async function buildPostListing(): Promise<PostListItem[]> {
   const [legacyPosts, databasePosts] = await Promise.all([
     Promise.resolve(getAllPosts()),
     getDatabasePostSummaries(),
   ]);
-  const posts = [...databasePosts, ...legacyPosts].sort(
+  const posts: PostListItem[] = [
+    ...databasePosts,
+    ...legacyPosts.map((post) => ({ ...post, readerCount: 0 })),
+  ].sort(
     (first, second) =>
       Date.parse(second.publishedAt) - Date.parse(first.publishedAt),
   );
-  const viewCounts = await findPublishedPostViewCounts(
-    posts.map((post) => post.slug),
-  );
-
-  return posts.map((post) => ({
-    ...post,
-    readerCount: viewCounts.get(post.slug) ?? 0,
-  }));
+  return posts;
 }
+
+export const getPostListing = unstable_cache(
+  buildPostListing,
+  ["public-post-listing"],
+  { tags: ["public-post-listing"], revalidate: 60 },
+);

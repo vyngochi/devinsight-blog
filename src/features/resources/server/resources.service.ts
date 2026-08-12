@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 
 import {
   MAX_RESOURCE_FILE_SIZE,
@@ -99,7 +100,16 @@ export async function publishResource(input: {
   });
 }
 
-export const getPublicResources = findPublicResources;
+const getCachedPublicResources = unstable_cache(
+  (query: string, topic: string) =>
+    findPublicResources({ query: query || undefined, topic: topic || undefined }),
+  ["public-resources"],
+  { tags: ["public-resources"], revalidate: 60 },
+);
+
+export function getPublicResources(input: { query?: string; topic?: string }) {
+  return getCachedPublicResources(input.query?.trim() ?? "", input.topic ?? "");
+}
 export const getManagedResources = findManagedResources;
 
 export const getPublicResource = cache((slug: string) => findPublicResourceBySlug(slug));

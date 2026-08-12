@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/auth";
@@ -71,6 +71,7 @@ export async function createCommunityQuestionAction(
     };
   }
 
+  revalidateTag("public-community", "max");
   revalidatePath("/community");
   redirect(`/community/${slug}`);
 }
@@ -96,6 +97,7 @@ export async function createCommunityAnswerAction(
       isAnonymous: formData.get("anonymous") === "on",
       authorId: user.id,
     });
+    revalidateTag("public-community", "max");
     revalidatePath(`/community/${result.question.slug}`);
     revalidatePath("/community");
     return { success: "Phản hồi của bạn đã được đăng." };
@@ -149,6 +151,7 @@ export async function moderateCommunityReportAction(formData: FormData) {
   if (action !== "review" && action !== "hide" && action !== "dismiss")
     throw new Error("Thao tác kiểm duyệt không hợp lệ.");
   await moderateCommunityReport({ reportId, resolverId: user.id, action });
+  revalidateTag("public-community", "max");
   revalidatePath("/admin/community");
   revalidatePath("/community");
 }
