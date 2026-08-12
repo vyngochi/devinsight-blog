@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Tài nguyên lập trình",
   description:
     "Thư viện tài liệu kỹ thuật được DevInsight chọn lọc cho cộng đồng lập trình.",
+  alternates: { canonical: "/resources" },
 };
 
 type ResourcesPageProps = {

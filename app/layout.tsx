@@ -39,6 +39,9 @@ export const metadata: Metadata = {
   authors: [{ name: "DevInsight Team", url: siteUrl }],
   creator: "DevInsight Team",
   publisher: siteName,
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
   robots: {
     index: true,
     follow: true,

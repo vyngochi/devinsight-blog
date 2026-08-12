@@ -1,10 +1,14 @@
-const fallbackSiteUrl = "https://devinsight.io.vn";
+const fallbackSiteUrl = "https://www.devinsight.io.vn";
 
 function getSiteUrl() {
   const configuredUrl = process.env.SITE_URL ?? fallbackSiteUrl;
 
   try {
-    return new URL(configuredUrl).origin;
+    const url = new URL(configuredUrl);
+    if (url.hostname === "devinsight.io.vn") {
+      url.hostname = "www.devinsight.io.vn";
+    }
+    return url.origin;
   } catch {
     return fallbackSiteUrl;
   }

@@ -12,7 +12,11 @@ type ResourceDetailProps = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: ResourceDetailProps): Promise<Metadata> {
   const resource = await getPublicResource((await params).slug);
   if (!resource) return {};
-  return { title: resource.title, description: resource.description };
+  return {
+    title: resource.title,
+    description: resource.description,
+    alternates: { canonical: `/resources/${resource.slug}` },
+  };
 }
 
 export default async function ResourceDetailPage({ params }: ResourceDetailProps) {
