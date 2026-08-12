@@ -7,18 +7,21 @@ const topics = [
     description: "Công nghệ và góc nhìn mới",
     icon: Compass,
     color: "bg-[#F472B6]",
+    href: "/posts",
   },
   {
     name: "Tài nguyên",
     description: "Công cụ, roadmap, tài liệu",
     icon: FolderOpen,
     color: "bg-[#FBBF24] text-[#1E293B]",
+    href: "/resources",
   },
   {
     name: "Cộng đồng",
     description: "Chia sẻ từ người học code",
     icon: UsersRound,
     color: "bg-[#34D399] text-[#1E293B]",
+    href: "/community",
   },
 ];
 
