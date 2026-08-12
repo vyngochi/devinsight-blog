@@ -164,7 +164,7 @@ export function Header() {
         <button
           type="button"
           onClick={() => setMobileMenuOpen((value) => !value)}
-          className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[#1E293B] bg-white text-[#1E293B] shadow-pop-sm sm:hidden"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 border-[#1E293B] bg-white text-[#1E293B] shadow-pop-sm xl:hidden"
           aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
         >
           {mobileMenuOpen ? (
@@ -175,7 +175,7 @@ export function Header() {
         </button>
       </div>
       {mobileMenuOpen ? (
-        <div className="border-t-2 border-[#1E293B] bg-[#FFFDF5] px-6 pb-6 pt-3 sm:hidden">
+        <div className="border-t-2 border-[#1E293B] bg-[#FFFDF5] px-6 pb-6 pt-3 xl:hidden">
           <button
             type="button"
             onClick={() => {
