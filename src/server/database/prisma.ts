@@ -10,7 +10,14 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured.");
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  const databaseUrl = new URL(connectionString);
+  const sslMode = databaseUrl.searchParams.get("sslmode");
+  if (sslMode === "prefer" || sslMode === "require" || sslMode === "verify-ca") {
+    databaseUrl.searchParams.set("sslmode", "verify-full");
+  }
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl.toString() }),
+  });
 }
 
 const cachedClient = globalForPrisma.prisma;
