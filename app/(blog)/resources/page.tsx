@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileArchive, Search, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, FileArchive, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { RESOURCE_TOPICS } from "@/features/resources/resource-policy";
 import { ResourceCard } from "@/features/resources/components/resource-card";
 import { getPublicResources } from "@/features/resources/server/resources.service";
@@ -28,7 +28,15 @@ export default async function ResourcesPage({
   const params = await searchParams;
   const query = getValue(params.q);
   const topic = getValue(params.topic);
-  const resources = await getPublicResources({ query, topic });
+  let resources: Awaited<ReturnType<typeof getPublicResources>>;
+  let loadFailed = false;
+  try {
+    resources = await getPublicResources({ query, topic });
+  } catch (error) {
+    loadFailed = true;
+    resources = [];
+    console.error("[resources] Failed to load public resources", error);
+  }
 
   return (
     <main className="bg-[#F8FAFC] py-6 sm:py-8">
@@ -75,6 +83,21 @@ export default async function ResourcesPage({
             Lọc tài nguyên
           </button>
         </form>
+        {loadFailed ? (
+          <section role="alert" className="mt-4 flex flex-col gap-3 rounded-xl border border-[#F59E0B] bg-[#FFFBEB] p-4 text-[#78350F] sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <h2 className="text-sm font-extrabold">Kho tài nguyên đang tạm thời gián đoạn</h2>
+                <p className="mt-1 text-xs leading-5">Nội dung chưa thể tải từ máy chủ. Bạn có thể thử lại sau ít phút.</p>
+              </div>
+            </div>
+            <Link href="/resources?retry=1" className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#1E293B] bg-white px-4 text-xs font-extrabold text-[#1E293B] active:translate-y-px">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Thử lại
+            </Link>
+          </section>
+        ) : null}
         <div className="mt-4 flex items-center justify-between gap-4">
           <p className="text-xs font-bold text-[#475569]">
             {resources.length} tài nguyên phù hợp
@@ -88,7 +111,7 @@ export default async function ResourcesPage({
             </Link>
           ) : null}
         </div>
-        {resources.length ? (
+        {loadFailed ? null : resources.length ? (
           <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {resources.map((resource) => (
               <ResourceCard key={resource.id} resource={resource} />

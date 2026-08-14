@@ -107,8 +107,22 @@ const getCachedPublicResources = unstable_cache(
   { tags: ["public-resources"], revalidate: 60 },
 );
 
-export function getPublicResources(input: { query?: string; topic?: string }) {
-  return getCachedPublicResources(input.query?.trim() ?? "", input.topic ?? "");
+function reviveCachedDate(value: Date | string) {
+  return value instanceof Date ? value : new Date(value);
+}
+
+export async function getPublicResources(input: { query?: string; topic?: string }) {
+  const resources = await getCachedPublicResources(
+    input.query?.trim() ?? "",
+    input.topic ?? "",
+  );
+  return resources.map((resource) => ({
+    ...resource,
+    published_at: resource.published_at
+      ? reviveCachedDate(resource.published_at as Date | string)
+      : null,
+    created_at: reviveCachedDate(resource.created_at as Date | string),
+  }));
 }
 export const getManagedResources = findManagedResources;
 

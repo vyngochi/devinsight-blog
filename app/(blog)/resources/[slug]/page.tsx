@@ -24,9 +24,13 @@ export default async function ResourceDetailPage({ params }: ResourceDetailProps
   if (!resource) notFound();
 
   const canPreview = isPreviewSupported(resource.mime_type);
-  const publishedDate = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(
-    resource.published_at ?? resource.created_at,
-  );
+  const rawPublishedDate = resource.published_at ?? resource.created_at;
+  const resourceDate = rawPublishedDate instanceof Date
+    ? rawPublishedDate
+    : new Date(rawPublishedDate);
+  const publishedDate = Number.isNaN(resourceDate.getTime())
+    ? "Chưa cập nhật"
+    : new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(resourceDate);
 
   return (
     <main className="bg-[#F8FAFC] py-6 sm:py-8">

@@ -15,13 +15,19 @@ type ResourceCardProps = {
     mime_type: string;
     file_size: number;
     download_count: number;
-    published_at: Date | null;
-    created_at: Date;
+    published_at: Date | string | null;
+    created_at: Date | string;
   };
 };
 
-function formatDate(date: Date | null) {
-  return new Intl.DateTimeFormat("vi-VN", { month: "short", year: "numeric" }).format(date ?? new Date());
+function formatDate(value: Date | string | null) {
+  if (!value) return "Chưa cập nhật";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Chưa cập nhật";
+  return new Intl.DateTimeFormat("vi-VN", {
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 export function ResourceCard({ resource }: ResourceCardProps) {
