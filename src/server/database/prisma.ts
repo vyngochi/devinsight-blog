@@ -16,12 +16,31 @@ function createPrismaClient() {
 const cachedClient = globalForPrisma.prisma;
 // Prisma delegates are generated from the schema. During Next.js development,
 // a cached client can survive a schema regeneration through HMR. Recreate it
-// when a newly added delegate is missing instead of serving a runtime error.
+// when a newly added model or field is missing instead of serving a runtime error.
+function clientHasField(client: PrismaClient, model: string, field: string) {
+  const runtimeDataModel = (
+    client as unknown as {
+      _runtimeDataModel?: {
+        models?: Record<string, { fields?: Array<{ name?: string }> }>;
+      };
+    }
+  )._runtimeDataModel;
+
+  return runtimeDataModel?.models?.[model]?.fields?.some(
+    (modelField) => modelField.name === field,
+  );
+}
+
 const hasCurrentSchema =
   !cachedClient ||
   Boolean(
     (cachedClient as unknown as Record<string, unknown>).community_questions &&
-      (cachedClient as unknown as Record<string, unknown>).resources,
+      (cachedClient as unknown as Record<string, unknown>).resources &&
+      (cachedClient as unknown as Record<string, unknown>).post_likes &&
+      (cachedClient as unknown as Record<string, unknown>).post_relations &&
+      (cachedClient as unknown as Record<string, unknown>)
+        .newsletter_subscribers &&
+      clientHasField(cachedClient, "posts", "featured"),
   );
 
 if (cachedClient && process.env.NODE_ENV !== "production" && !hasCurrentSchema) {

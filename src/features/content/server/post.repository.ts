@@ -16,7 +16,9 @@ type PostPersistenceInput = {
   readingTimeInMinutes: number;
   coverImage?: string;
   status: "DRAFT" | "PUBLISHED";
+  publishedAt?: Date;
   authorId?: string;
+  relatedSlugs: string[];
 };
 
 const publicPostSelect = {
@@ -31,6 +33,8 @@ const publicPostSelect = {
   author_role: true,
   badge_color: true,
   view_count: true,
+  like_count: true,
+  featured: true,
   published_at: true,
   created_at: true,
   updated_at: true,
@@ -49,6 +53,8 @@ const publicPostSummarySelect = {
   author_role: true,
   badge_color: true,
   view_count: true,
+  like_count: true,
+  featured: true,
   published_at: true,
   created_at: true,
   updated_at: true,
@@ -97,9 +103,9 @@ export async function upsertDatabasePost(input: PostPersistenceInput, restricted
         }),
       ),
     );
-    const publishedAt = input.status === "PUBLISHED" ? new Date() : null;
+    const publishedAt = input.status === "PUBLISHED" ? input.publishedAt : null;
 
-    return transaction.posts.upsert({
+    const post = await transaction.posts.upsert({
       where: { slug: input.slug },
       update: {
         title: input.title,
@@ -111,7 +117,7 @@ export async function upsertDatabasePost(input: PostPersistenceInput, restricted
         author_role: input.authorRole,
         badge_color: input.badgeColor,
         status: input.status,
-        published_at: publishedAt,
+        published_at: input.status === "DRAFT" ? null : publishedAt,
         category_id: category.id,
         post_tags: {
           deleteMany: {},
@@ -129,13 +135,26 @@ export async function upsertDatabasePost(input: PostPersistenceInput, restricted
         author_role: input.authorRole,
         badge_color: input.badgeColor,
         status: input.status,
-        published_at: publishedAt,
+        published_at: publishedAt ?? (input.status === "PUBLISHED" ? new Date() : null),
         category_id: category.id,
         ...(input.authorId ? { author_id: input.authorId } : {}),
         post_tags: { create: tags.map((tag) => ({ tag_id: tag.id })) },
       },
-      select: { slug: true, status: true },
+      select: { id: true, slug: true, status: true },
     });
+    const related = await transaction.posts.findMany({
+      where: { slug: { in: input.relatedSlugs }, id: { not: post.id } },
+      select: { id: true, slug: true },
+    });
+    const relatedBySlug = new Map(related.map((item) => [item.slug, item.id]));
+    await transaction.post_relations.deleteMany({ where: { source_post_id: post.id } });
+    await transaction.post_relations.createMany({
+      data: input.relatedSlugs.flatMap((slug, position) => {
+        const relatedPostId = relatedBySlug.get(slug);
+        return relatedPostId ? [{ source_post_id: post.id, related_post_id: relatedPostId, position }] : [];
+      }),
+    });
+    return post;
   });
 }
 
@@ -164,7 +183,7 @@ export async function updateDatabasePost(originalSlug: string, input: PostPersis
       select: { id: true },
     })));
 
-    return transaction.posts.update({
+    const post = await transaction.posts.update({
       where: { id: existing.id },
       data: {
         slug: input.slug,
@@ -177,12 +196,25 @@ export async function updateDatabasePost(originalSlug: string, input: PostPersis
         author_role: input.authorRole,
         badge_color: input.badgeColor,
         status: input.status,
-        published_at: input.status === "PUBLISHED" ? existing.published_at ?? new Date() : null,
+        published_at: input.status === "PUBLISHED" ? input.publishedAt ?? existing.published_at ?? new Date() : null,
         category_id: category.id,
         post_tags: { deleteMany: {}, create: tags.map((tag) => ({ tag_id: tag.id })) },
       },
-      select: { slug: true, status: true },
+      select: { id: true, slug: true, status: true },
     });
+    const related = await transaction.posts.findMany({
+      where: { slug: { in: input.relatedSlugs }, id: { not: post.id } },
+      select: { id: true, slug: true },
+    });
+    const relatedBySlug = new Map(related.map((item) => [item.slug, item.id]));
+    await transaction.post_relations.deleteMany({ where: { source_post_id: post.id } });
+    await transaction.post_relations.createMany({
+      data: input.relatedSlugs.flatMap((slug, position) => {
+        const relatedPostId = relatedBySlug.get(slug);
+        return relatedPostId ? [{ source_post_id: post.id, related_post_id: relatedPostId, position }] : [];
+      }),
+    });
+    return post;
   });
 }
 
@@ -191,17 +223,17 @@ export async function findEditableDatabasePostBySlug(slug: string, kind: "articl
     where: {
       slug,
       ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}),
-      NOT: [
-        { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
-        ...(kind === "news" ? [] : [{ post_tags: { some: { tags: { slug: "news" } } } }]),
-      ],
-      ...(kind === "news" ? { post_tags: { some: { tags: { slug: "news" } } } } : {}),
+      ...(kind === "news"
+        ? { post_tags: { some: { tags: { slug: "news" } } } }
+        : { post_tags: { none: { tags: { slug: "news" } } } }),
     },
     select: {
       slug: true, title: true, excerpt: true, content_mdx: true, reading_time_min: true,
       cover_image: true, author_name: true, author_role: true, badge_color: true, status: true,
+      published_at: true,
       categories: { select: { name: true } },
       post_tags: { select: { tags: { select: { name: true, slug: true } } } },
+      related_posts: { select: { related_post: { select: { slug: true } } }, orderBy: { position: "asc" } },
     },
   });
 }
@@ -211,11 +243,9 @@ export async function deleteEditableDatabasePostBySlug(slug: string, kind: "arti
     where: {
       slug,
       ...(restrictedAuthorId ? { author_id: restrictedAuthorId } : {}),
-      NOT: [
-        { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
-        ...(kind === "news" ? [] : [{ post_tags: { some: { tags: { slug: "news" } } } }]),
-      ],
-      ...(kind === "news" ? { post_tags: { some: { tags: { slug: "news" } } } } : {}),
+      ...(kind === "news"
+        ? { post_tags: { some: { tags: { slug: "news" } } } }
+        : { post_tags: { none: { tags: { slug: "news" } } } }),
     },
   });
 }
@@ -225,7 +255,7 @@ export async function findPublishedDatabasePostBySlug(slug: string) {
     where: {
       slug,
       status: "PUBLISHED",
-      NOT: { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
+      published_at: { lte: new Date() },
     },
     select: publicPostSelect,
   });
@@ -235,7 +265,7 @@ export async function findPublishedDatabasePosts() {
   return prisma.posts.findMany({
     where: {
       status: "PUBLISHED",
-      NOT: { content_mdx: { startsWith: "Content is managed in src/content/posts/" } },
+      published_at: { lte: new Date() },
     },
     select: publicPostSummarySelect,
     orderBy: [{ published_at: "desc" }, { created_at: "desc" }],
@@ -280,24 +310,14 @@ export async function findAdminNewsPosts(restrictedAuthorId?: string) {
   });
 }
 
-export async function upsertPublishedPost(input: {
-  slug: string;
-  title: string;
-  excerpt: string;
-  categoryName: string;
-  categorySlug: string;
-  readingTimeInMinutes: number;
-  publishedAt: Date;
-}) {
-  const category = await prisma.categories.upsert({
-    where: { slug: input.categorySlug },
-    update: { name: input.categoryName },
-    create: { name: input.categoryName, slug: input.categorySlug, description: categoryDescription(input.categoryName) },
-    select: { id: true },
-  });
-  return prisma.posts.upsert({
-    where: { slug: input.slug },
-    update: { title: input.title, excerpt: input.excerpt, reading_time_min: input.readingTimeInMinutes, category_id: category.id, status: "PUBLISHED", published_at: input.publishedAt },
-    create: { slug: input.slug, title: input.title, excerpt: input.excerpt, content_mdx: `Content is managed in src/content/posts/${input.slug}.mdx`, reading_time_min: input.readingTimeInMinutes, category_id: category.id, status: "PUBLISHED", published_at: input.publishedAt },
+export async function findRelatedPostCandidates(excludeSlug?: string) {
+  return prisma.posts.findMany({
+    where: {
+      ...(excludeSlug ? { slug: { not: excludeSlug } } : {}),
+      post_tags: { none: { tags: { slug: "news" } } },
+    },
+    select: { slug: true, title: true, status: true },
+    orderBy: { updated_at: "desc" },
+    take: 200,
   });
 }

@@ -11,6 +11,14 @@ export type EditorPostInitialData = {
   coverImage: string;
   badgeColor: string;
   status: "DRAFT" | "PUBLISHED";
+  scheduledAt?: string;
+  relatedSlugs: string[];
+};
+
+export type RelatedPostCandidate = {
+  slug: string;
+  title: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 };
 
 export type NewsEditorInitialData = Omit<EditorPostInitialData, "category" | "authorRole" | "badgeColor" | "readingTime"> & {

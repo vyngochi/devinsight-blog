@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { PostEditorForm } from "@/features/content/components/post-editor-form";
-import { getAdminEditablePost } from "@/features/content/server/post-editor.service";
+import { getAdminEditablePost, getRelatedPostCandidates } from "@/features/content/server/post-editor.service";
 import type { EditorPostInitialData } from "@/features/content/editor-types";
 import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
@@ -13,5 +13,6 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const post = await getAdminEditablePost(slug, "article", session.user.role === "AUTHOR" ? session.user.id : undefined);
   if (!post) notFound();
-  return <PostEditorForm key={`edit-post-${post.slug}`} draftOwnerId={session.user.id} defaultAuthor={session.user.name || session.user.email || "DevInsight"} initialData={post as EditorPostInitialData} />;
+  const relatedCandidates = await getRelatedPostCandidates(post.slug);
+  return <PostEditorForm key={`edit-post-${post.slug}`} draftOwnerId={session.user.id} defaultAuthor={session.user.name || session.user.email || "DevInsight"} initialData={post as EditorPostInitialData} relatedCandidates={relatedCandidates} />;
 }

@@ -87,7 +87,7 @@ export function CalloutRichTextEditor({ value, onChange }: { value: string; onCh
   </div>;
 }
 
-export function CalloutRichTextPreview({ value }: { value: string }) {
+export function CalloutRichTextPreview({ value, variant = "callout" }: { value: string; variant?: "callout" | "article" }) {
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -103,12 +103,13 @@ export function CalloutRichTextPreview({ value }: { value: string }) {
       content: markdownToHtml(value),
       editorProps: {
         attributes: {
-          class:
-            "space-y-3 text-sm leading-7 [&_a]:font-bold [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6 [&_p]:m-0 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6",
+          class: variant === "article"
+            ? "text-[15px] leading-8 text-[#334155] [&_a]:font-bold [&_a]:text-[#8B5CF6] [&_a]:underline [&_a]:decoration-2 [&_a]:underline-offset-2 [&_code]:rounded [&_code]:bg-[#F1F5F9] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_ol]:list-decimal [&_ol]:space-y-3 [&_ol]:pl-6 [&_p]:m-0 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6"
+            : "space-y-3 text-sm leading-7 [&_a]:font-bold [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6 [&_p]:m-0 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6",
         },
       },
     },
-    [value],
+    [value, variant],
   );
 
   return editor ? <EditorContent editor={editor} /> : null;

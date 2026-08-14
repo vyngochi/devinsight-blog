@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { recordPostView } from "@/features/analytics/server/analytics.service";
 import { canRecordView } from "@/features/analytics/server/view-rate-limit";
@@ -25,6 +26,7 @@ export async function POST(
   if (!canRecordView(`${slug}:${visitorHash}`))
     return NextResponse.json({ counted: false, reason: "rate_limited" });
   const result = await recordPostView(slug, visitorHash);
+  if (result.counted) revalidateTag("public-post-listing", "max");
   const response = NextResponse.json(result);
   if (!existingVisitorId)
     response.cookies.set(VISITOR_COOKIE, visitorId, {

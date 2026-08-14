@@ -1,7 +1,6 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
-import { getAllPosts } from "@/features/content/post-registry";
 import { getDatabasePostSummaries } from "@/features/content/server/post-editor.service";
 import type { PostSummary } from "@/types/blog";
 
@@ -10,14 +9,7 @@ export type PostListItem = PostSummary & {
 };
 
 async function buildPostListing(): Promise<PostListItem[]> {
-  const [legacyPosts, databasePosts] = await Promise.all([
-    Promise.resolve(getAllPosts()),
-    getDatabasePostSummaries(),
-  ]);
-  const posts: PostListItem[] = [
-    ...databasePosts,
-    ...legacyPosts.map((post) => ({ ...post, readerCount: 0 })),
-  ].sort(
+  const posts: PostListItem[] = (await getDatabasePostSummaries()).sort(
     (first, second) =>
       Date.parse(second.publishedAt) - Date.parse(first.publishedAt),
   );

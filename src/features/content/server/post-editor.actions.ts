@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { deleteAdminEditablePost, saveDatabaseNews, saveDatabasePost } from "@/features/content/server/post-editor.service";
 import { canUseAuthorPermission } from "@/features/admin/server/author-permissions";
 
-export type PostEditorState = { error?: string; success?: string; slug?: string; status?: "DRAFT" | "PUBLISHED" };
+export type PostEditorState = { error?: string; success?: string; slug?: string; status?: "DRAFT" | "PUBLISHED"; scheduledAt?: string };
 
 function field(formData: FormData, name: string) {
   return typeof formData.get(name) === "string" ? String(formData.get(name)) : "";
@@ -33,11 +33,12 @@ export async function savePostAction(_: PostEditorState, formData: FormData): Pr
       originalSlug: originalSlug || undefined,
       authorId: session.user.id,
       restrictedAuthorId: session.user.role === "AUTHOR" ? session.user.id : undefined,
-      title: field(formData, "title"), slug: field(formData, "slug"), excerpt: field(formData, "excerpt"), content: field(formData, "content"), category: field(formData, "category"), tags: field(formData, "tags"), authorName: field(formData, "authorName"), authorRole: field(formData, "authorRole"), readingTime: field(formData, "readingTime"), coverImage: field(formData, "coverImage"), badgeColor: field(formData, "badgeColor"), intent: field(formData, "intent"),
+      title: field(formData, "title"), slug: field(formData, "slug"), excerpt: field(formData, "excerpt"), content: field(formData, "content"), category: field(formData, "category"), tags: field(formData, "tags"), authorName: field(formData, "authorName"), authorRole: field(formData, "authorRole"), readingTime: field(formData, "readingTime"), coverImage: field(formData, "coverImage"), badgeColor: field(formData, "badgeColor"), intent: field(formData, "intent"), scheduledAt: field(formData, "scheduledAt"), relatedSlugs: field(formData, "relatedSlugs"),
     });
     revalidateTag("public-post-listing", "max");
     revalidatePath("/"); revalidatePath("/posts"); revalidatePath(`/posts/${post.slug}`); if (originalSlug && originalSlug !== post.slug) revalidatePath(`/posts/${originalSlug}`); revalidatePath("/admin/posts");
-    return { success: post.status === "PUBLISHED" ? "Bài viết đã được xuất bản." : "Bản nháp đã được lưu.", slug: post.slug, status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT" };
+    const scheduledAt = field(formData, "intent") === "schedule" ? field(formData, "scheduledAt") : undefined;
+    return { success: scheduledAt ? "Bài viết đã được lên lịch." : post.status === "PUBLISHED" ? "Bài viết đã được xuất bản." : "Bản nháp đã được lưu.", slug: post.slug, status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT", scheduledAt };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Không thể lưu bài viết." };
   }
@@ -63,6 +64,7 @@ export async function saveNewsAction(_: PostEditorState, formData: FormData): Pr
       reportedAt: field(formData, "reportedAt"),
       existingReportedAtLabel: field(formData, "existingReportedAtLabel") || undefined,
       intent: field(formData, "intent"),
+      scheduledAt: field(formData, "scheduledAt"),
     });
     revalidateTag("public-post-listing", "max");
     revalidatePath("/");
@@ -72,9 +74,10 @@ export async function saveNewsAction(_: PostEditorState, formData: FormData): Pr
     revalidatePath("/admin/posts");
     revalidatePath("/admin/news");
     return {
-      success: post.status === "PUBLISHED" ? "Tin tức đã được xuất bản." : "Bản nháp tin tức đã được lưu.",
+      success: field(formData, "intent") === "schedule" ? "Tin tức đã được lên lịch." : post.status === "PUBLISHED" ? "Tin tức đã được xuất bản." : "Bản nháp tin tức đã được lưu.",
       slug: post.slug,
       status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+      scheduledAt: field(formData, "intent") === "schedule" ? field(formData, "scheduledAt") : undefined,
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Không thể lưu tin tức." };

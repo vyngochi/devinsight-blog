@@ -1,12 +1,21 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminShellLoading } from "@/components/ui/page-loading-skeletons";
 import { getAuthorPermissions } from "@/features/admin/server/author-permissions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLayout({
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<AdminShellLoading />}>
+      <AuthorizedAdminLayout>{children}</AuthorizedAdminLayout>
+    </Suspense>
+  );
+}
+
+async function AuthorizedAdminLayout({
   children,
 }: {
   children: ReactNode;

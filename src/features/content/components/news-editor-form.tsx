@@ -8,6 +8,7 @@ import {
   Clock3,
   Circle,
   Eye,
+  History,
   Newspaper,
   Plus,
   Save,
@@ -24,6 +25,10 @@ import {
 import type { NewsEditorInitialData } from "@/features/content/editor-types";
 import { useEditorSafety } from "@/features/content/components/use-editor-safety";
 import { useLocalEditorDraft } from "@/features/content/components/use-local-editor-draft";
+import { useEditorShortcuts } from "@/features/content/components/use-editor-shortcuts";
+import { EditorCoverField } from "@/features/content/components/editor-cover-field";
+import { EditorHistory } from "@/features/content/components/editor-history";
+import type { LocalEditorDraft } from "@/features/content/components/use-local-editor-draft";
 
 const initialState: PostEditorState = {};
 
@@ -31,23 +36,28 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
   const [state, action, pending] = useActionState(saveNewsAction, initialState);
   const [showPreview, setShowPreview] = useState(false);
   const [showMetadata, setShowMetadata] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? "");
   const [sources, setSources] = useState(initialData?.sources.length ? initialData.sources : [{ name: "", url: "" }]);
   const [reportedAt, setReportedAt] = useState("");
+  const [scheduledAt, setScheduledAt] = useState(initialData?.scheduledAt ?? "");
   const [coverImage, setCoverImage] = useState(initialData?.coverImage ?? "");
   const [sourceError, setSourceError] = useState("");
   const [editorContent, setEditorContent] = useState(initialData?.content);
   const [editorRevision, setEditorRevision] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  useEditorShortcuts(formRef);
   const { dirty, changeVersion, markDirty, markSaved, confirmNavigation } = useEditorSafety();
   const currentStatus = state.status ?? initialData?.status ?? "DRAFT";
+  const activeSchedule = state.scheduledAt ?? initialData?.scheduledAt;
   const {
     recoveryDraft,
     lastAutoSavedAt,
     clearLocalDraft,
     dismissRecovery,
     acceptRecovery,
+    draftHistory,
   } = useLocalEditorDraft({
     storageKey: `devinsight:editor:news:${draftOwnerId}:${initialData?.slug ?? "new"}`,
     formRef,
@@ -62,9 +72,9 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
     }
   }, [state, markSaved, clearLocalDraft]);
 
-  function restoreLocalDraft() {
-    if (!recoveryDraft || !formRef.current) return;
-    const { fields } = recoveryDraft;
+  function restoreLocalDraft(draft: LocalEditorDraft | null = recoveryDraft) {
+    if (!draft || !formRef.current) return;
+    const { fields } = draft;
     setTitle(fields.title ?? "");
     setExcerpt(fields.excerpt ?? "");
     try {
@@ -74,6 +84,7 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
       setSources([{ name: "", url: "" }]);
     }
     setReportedAt(fields.reportedAt ?? "");
+    setScheduledAt(fields.scheduledAt ?? "");
     setCoverImage(fields.coverImage ?? "");
     for (const [name, value] of Object.entries(fields)) {
       if (["title", "excerpt", "sources", "reportedAt", "coverImage", "content", "originalSlug", "existingReportedAtLabel"].includes(name)) continue;
@@ -85,6 +96,7 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
     setEditorContent(fields.content);
     setEditorRevision((current) => current + 1);
     acceptRecovery();
+    setShowHistory(false);
     markDirty();
   }
 
@@ -108,6 +120,22 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
       form.querySelector<HTMLElement>(":invalid")?.focus();
       form.reportValidity();
     });
+  }
+
+  function confirmPublish(event: MouseEvent<HTMLButtonElement>) {
+    validateBeforeSubmit(event);
+    if (event.defaultPrevented) return;
+    if (!window.confirm(currentStatus === "PUBLISHED" ? "Cập nhật bản tin đang công khai?" : "Xuất bản bản tin ngay bây giờ?")) event.preventDefault();
+  }
+
+  function validateSchedule(event: MouseEvent<HTMLButtonElement>) {
+    validateBeforeSubmit(event);
+    if (event.defaultPrevented) return;
+    if (!scheduledAt || new Date(scheduledAt) <= new Date()) {
+      event.preventDefault();
+      setShowMetadata(true);
+      requestAnimationFrame(() => formRef.current?.querySelector<HTMLInputElement>("[name='scheduledAt']")?.focus());
+    }
   }
 
   const checklist = [
@@ -150,13 +178,15 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
                 {initialData ? "Chỉnh sửa tin công nghệ" : "Soạn tin công nghệ"}
               </p>
               <p className={`mt-0.5 text-[10px] font-bold ${dirty ? "text-[#B45309]" : "text-[#64748B]"}`}>
-                {pending ? "Đang lưu..." : dirty ? lastAutoSavedAt ? `Chưa lưu lên server · đã sao lưu lúc ${new Date(lastAutoSavedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}` : "Có thay đổi chưa lưu" : currentStatus === "PUBLISHED" ? "Đã xuất bản" : "Bản nháp đã lưu"}
+                {pending ? "Đang lưu..." : dirty ? lastAutoSavedAt ? `Chưa lưu lên server · đã sao lưu lúc ${new Date(lastAutoSavedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}` : "Có thay đổi chưa lưu" : activeSchedule ? `Đã lên lịch ${new Date(activeSchedule).toLocaleString("vi-VN")}` : currentStatus === "PUBLISHED" ? "Đã xuất bản" : "Bản nháp đã lưu"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setShowHistory(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E293B] bg-white px-3 py-2 text-xs font-bold" title="Lịch sử bản nháp"><History className="h-3.5 w-3.5" /><span className="hidden lg:inline">Lịch sử</span></button>
             <button
               type="button"
+              data-editor-preview
               onClick={() => setShowMetadata((current) => !current)}
               className={`inline-flex items-center gap-1.5 rounded-lg border border-[#1E293B] px-3 py-2 text-xs font-bold ${showMetadata ? "bg-[#EDE9FE] text-[#6D28D9]" : "bg-white text-[#1E293B]"}`}
             >
@@ -178,6 +208,14 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
             <button
               disabled={pending}
               name="intent"
+              value="schedule"
+              onClick={validateSchedule}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#BE185D] bg-[#FDF2F8] px-3 py-2 text-xs font-bold text-[#9D174D] disabled:opacity-60"
+            ><Clock3 className="h-3.5 w-3.5" /><span className="hidden lg:inline">Lên lịch</span></button>
+            <button
+              disabled={pending}
+              data-editor-save
+              name="intent"
               value={currentStatus === "PUBLISHED" ? "save-published" : "draft"}
               onClick={validateBeforeSubmit}
               className="inline-flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-xs font-bold text-[#334155] disabled:opacity-60"
@@ -190,7 +228,7 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
               disabled={pending}
               name="intent"
               value="publish"
-              onClick={validateBeforeSubmit}
+              onClick={confirmPublish}
               className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E293B] bg-[#FBBF24] px-3 py-2 text-xs font-extrabold text-[#1E293B] disabled:opacity-60"
             >
               <Send className="h-3.5 w-3.5" aria-hidden="true" />
@@ -205,18 +243,18 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
           <p className="font-bold">Tìm thấy bản sao cục bộ lúc {new Date(recoveryDraft.savedAt).toLocaleString("vi-VN")}.</p>
           <div className="flex gap-2">
             <button type="button" onClick={dismissRecovery} className="rounded-lg border border-[#D97706] bg-white px-3 py-1.5 font-bold">Bỏ bản tạm</button>
-            <button type="button" onClick={restoreLocalDraft} className="rounded-lg border border-[#1E293B] bg-[#FBBF24] px-3 py-1.5 font-extrabold text-[#1E293B]">Khôi phục</button>
+            <button type="button" onClick={() => restoreLocalDraft()} className="rounded-lg border border-[#1E293B] bg-[#FBBF24] px-3 py-1.5 font-extrabold text-[#1E293B]">Khôi phục</button>
           </div>
         </div>
       ) : null}
 
       <section
-        className={`border-b border-[#CBD5E1] bg-white px-4 py-5 sm:px-6 ${showMetadata ? "" : "hidden"}`}
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain border-b border-[#CBD5E1] bg-white px-4 py-5 sm:px-6 ${showMetadata ? "" : "hidden"}`}
       >
         <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <label className="grid gap-1.5 text-xs font-bold text-[#334155]">
-              Tiêu đề tin
+              <span className="flex items-center justify-between gap-3"><span>Tiêu đề tin</span><span className="font-medium text-[#64748B]">{title.length}/255</span></span>
               <input
                 required
                 name="title"
@@ -228,7 +266,7 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
               />
             </label>
             <label className="mt-3 grid gap-1.5 text-xs font-bold text-[#334155]">
-              Lead tin tức
+              <span className="flex items-center justify-between gap-3"><span>Lead tin tức</span><span className={excerpt.length > 160 ? "font-medium text-[#B45309]" : "font-medium text-[#64748B]"}>{excerpt.length}/500, SEO nên dưới 160</span></span>
               <textarea
                 required
                 name="excerpt"
@@ -265,6 +303,10 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
               placeholder="de-trong-de-tao-tu-tieu-de"
               className="h-9 rounded-lg border border-[#CBD5E1] px-3 font-normal outline-none focus:border-[#BE185D]"
             />
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-[#475569]">
+            Lịch xuất bản
+            <input name="scheduledAt" type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} className="h-9 rounded-lg border border-[#CBD5E1] px-3 font-normal outline-none focus:border-[#BE185D]" />
           </label>
           <div className="space-y-2 sm:col-span-2 lg:col-span-3">
             <div className="flex items-center justify-between gap-3">
@@ -310,17 +352,7 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
               className="h-9 rounded-lg border border-[#CBD5E1] px-3 font-normal outline-none focus:border-[#BE185D]"
             />
           </label>
-          <label className="grid gap-1 text-xs font-bold text-[#475569]">
-            URL ảnh cover{" "}
-            <input
-              name="coverImage"
-              type="url"
-              value={coverImage}
-              onChange={(event) => setCoverImage(event.target.value)}
-              placeholder="https://..."
-              className="h-9 rounded-lg border border-[#CBD5E1] px-3 font-normal outline-none focus:border-[#BE185D]"
-            />
-          </label>
+          <div className="sm:col-span-2 lg:col-span-4"><EditorCoverField value={coverImage} onChange={setCoverImage} accent="pink" /></div>
         </div>
       </section>
 
@@ -332,6 +364,8 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
         mode="news"
         initialContent={editorContent}
         onDirty={markDirty}
+        toolbarVisible={!showMetadata}
+        workspaceVisible={!showMetadata}
       />
 
       {state.error ? (
@@ -353,6 +387,7 @@ export function NewsEditorForm({ defaultAuthor, draftOwnerId, initialData }: { d
           </Link>
         </p>
       ) : null}
+      <EditorHistory open={showHistory} drafts={draftHistory} onClose={() => setShowHistory(false)} onRestore={restoreLocalDraft} />
     </form>
   );
 }

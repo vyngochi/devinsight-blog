@@ -13,13 +13,19 @@ import {
   ChevronDown,
   ChevronUp,
   Code2,
+  Copy,
   GripVertical,
   Heading1,
   Heading2,
+  Heading3,
   ImageIcon,
   Lightbulb,
   ListPlus,
+  List,
+  ListOrdered,
+  Plus,
   Pilcrow,
+  Quote,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -29,13 +35,21 @@ import {
 } from "@/features/content/components/callout-rich-text-editor";
 import {
   CodeBlockEditor,
-  CodeBlockPreview,
 } from "@/features/content/components/code-block-editor";
+import { Callout } from "@/components/mdx/callout";
+import { CodeBlock } from "@/components/mdx/code-block";
+import { Figure } from "@/components/mdx/figure";
+import { ImageGrid } from "@/components/mdx/image-grid";
 
 type BlockType =
   | "heading1"
   | "heading2"
+  | "heading3"
   | "paragraph"
+  | "bulletList"
+  | "orderedList"
+  | "quote"
+  | "divider"
   | "code"
   | "callout"
   | "image"
@@ -83,7 +97,12 @@ const articleBlockOptions: Array<{
 }> = [
   { type: "heading1", label: "Tiêu đề 1", icon: Heading1 },
   { type: "heading2", label: "Tiêu đề 2", icon: Heading2 },
+  { type: "heading3", label: "Tiêu đề 3", icon: Heading3 },
   { type: "paragraph", label: "Đoạn văn", icon: Pilcrow },
+  { type: "bulletList", label: "Danh sách", icon: List },
+  { type: "orderedList", label: "Danh sách số", icon: ListOrdered },
+  { type: "quote", label: "Trích dẫn", icon: Quote },
+  { type: "divider", label: "Phân cách", icon: ListPlus },
   { type: "code", label: "Code", icon: Code2 },
   { type: "callout", label: "Lưu ý", icon: Lightbulb },
   { type: "image", label: "Ảnh", icon: ImageIcon },
@@ -158,7 +177,12 @@ function serializeBlocks(blocks: EditorBlock[]) {
       const text = block.text.trim();
       if (block.type === "heading1") return text ? `# ${text}` : "";
       if (block.type === "heading2") return text ? `## ${text}` : "";
+      if (block.type === "heading3") return text ? `### ${text}` : "";
       if (block.type === "paragraph") return text;
+      if (block.type === "bulletList") return text ? text.split("\n").map((item) => item.trim()).filter(Boolean).map((item) => `- ${item.replace(/^[-*]\s*/, "")}`).join("\n") : "";
+      if (block.type === "orderedList") return text ? text.split("\n").map((item) => item.trim()).filter(Boolean).map((item, index) => `${index + 1}. ${item.replace(/^\d+\.\s*/, "")}`).join("\n") : "";
+      if (block.type === "quote") return text ? text.split("\n").map((line) => `> ${line}`).join("\n") : "";
+      if (block.type === "divider") return "---";
       if (block.type === "code")
         return text
           ? `\`\`\`${block.language || "text"}\n${block.text}\n\`\`\``
@@ -190,7 +214,7 @@ function serializeBlocks(blocks: EditorBlock[]) {
 function blocksFromContent(content: string, mode: PostEditorMode) {
   const normalizedContent = content.replace(/\r\n?/g, "\n");
   const protectedPattern =
-    /```([\w-]*)\n([\s\S]*?)\n```|<Callout\s+([^>]*)>\s*([\s\S]*?)\s*<\/Callout>|<ImageGrid layout="(two|three|featured)">\s*([\s\S]*?)\s*<\/ImageGrid>|<Figure\s+([^>]*?)\s*\/>/g;
+    /```([\w-]*)\n([\s\S]*?)\n```|<Callout(?:\s+([^>]*))?>\s*([\s\S]*?)\s*<\/Callout>|<ImageGrid\s+layout="(two|three|featured)">\s*([\s\S]*?)\s*<\/ImageGrid>|<Figure\s+([^>]*?)\s*\/>/g;
   const decode = (value: string) =>
     value.replaceAll("&quot;", '"').replaceAll("&amp;", "&");
   const figureFromAttributes = (attributes: string) => {
@@ -211,11 +235,15 @@ function blocksFromContent(content: string, mode: PostEditorMode) {
       .map((part) => part.trim())
       .filter(Boolean)
       .forEach((part) => {
-        const heading = part.match(/^(#{1,2})\s+(.+)$/);
+        const heading = part.match(/^(#{1,3})\s+(.+)$/);
         const image = part.match(/^!\[([^\]]*)\]\(([\s\S]+)\)$/);
-        if (heading)
+        const list = part.split("\n").every((line) => /^[-*]\s+/.test(line));
+        const orderedList = part.split("\n").every((line) => /^\d+\.\s+/.test(line));
+        const quote = part.split("\n").every((line) => /^>\s?/.test(line));
+        if (part === "---") blocks.push(createBlock("divider"));
+        else if (heading)
           blocks.push({
-            ...createBlock(heading[1].length === 1 ? "heading1" : "heading2"),
+            ...createBlock(heading[1].length === 1 ? "heading1" : heading[1].length === 2 ? "heading2" : "heading3"),
             text: heading[2],
           });
         else if (image)
@@ -224,20 +252,24 @@ function blocksFromContent(content: string, mode: PostEditorMode) {
             src: image[2],
             alt: image[1],
           });
+        else if (list) blocks.push({ ...createBlock("bulletList"), text: part.split("\n").map((line) => line.replace(/^[-*]\s+/, "")).join("\n") });
+        else if (orderedList) blocks.push({ ...createBlock("orderedList"), text: part.split("\n").map((line) => line.replace(/^\d+\.\s+/, "")).join("\n") });
+        else if (quote) blocks.push({ ...createBlock("quote"), text: part.split("\n").map((line) => line.replace(/^>\s?/, "")).join("\n") });
         else blocks.push({ ...createBlock("paragraph"), text: part });
       });
   };
   let lastIndex = 0;
   for (const match of normalizedContent.matchAll(protectedPattern)) {
     addPlainText(normalizedContent.slice(lastIndex, match.index));
-    if (match[1] !== undefined)
+    if (match[2] !== undefined)
       blocks.push({
         ...createBlock("code"),
         language: match[1] || "text",
         text: match[2],
       });
-    else if (match[3] !== undefined) {
-      const calloutValue = (name: string) => decode(match[3].match(new RegExp(`${name}="([^"]*)"`))?.[1] ?? "");
+    else if (match[4] !== undefined) {
+      const calloutAttributes = match[3] ?? "";
+      const calloutValue = (name: string) => decode(calloutAttributes.match(new RegExp(`${name}="([^"]*)"`))?.[1] ?? "");
       const calloutType = (calloutValue("type") || "note") as CalloutType;
       blocks.push({
         ...createBlock("callout"),
@@ -247,7 +279,7 @@ function blocksFromContent(content: string, mode: PostEditorMode) {
         text: match[4].trim(),
       });
     }
-    else if (match[5] !== undefined) {
+    else if (match[6] !== undefined) {
       const figures = [...match[6].matchAll(/<Figure\s+([^>]*?)\s*\/>/g)].map(
         (image) => figureFromAttributes(image[1]),
       );
@@ -273,7 +305,7 @@ function blocksFromContent(content: string, mode: PostEditorMode) {
     } else
       blocks.push({
         ...createBlock("image"),
-        ...figureFromAttributes(match[7]),
+        ...figureFromAttributes(match[7] ?? ""),
       });
     lastIndex = (match.index ?? 0) + match[0].length;
   }
@@ -316,7 +348,8 @@ function PreviewPane({
             if (
               !block.text.trim() &&
               block.type !== "image" &&
-              block.type !== "imageGallery"
+              block.type !== "imageGallery" &&
+              block.type !== "divider"
             )
               return null;
             if (block.type === "heading1")
@@ -332,91 +365,59 @@ function PreviewPane({
               return (
                 <h2
                   key={block.id}
-                  className="mt-8 text-2xl font-extrabold text-[#1E293B]"
+                  className="mt-10 scroll-mt-24 text-2xl font-extrabold tracking-tight text-[#1E293B]"
                 >
                   {block.text}
                 </h2>
               );
-            if (block.type === "paragraph")
+            if (block.type === "heading3")
               return (
-                <p
+                <h3
                   key={block.id}
-                  className="mt-5 whitespace-pre-wrap text-[15px] leading-8 text-[#334155]"
+                  className="mt-7 scroll-mt-24 text-xl font-extrabold text-[#1E293B]"
                 >
                   {block.text}
-                </p>
+                </h3>
               );
+            if (block.type === "paragraph")
+              return (
+                <div key={block.id} className="mt-3">
+                  <CalloutRichTextPreview value={block.text} variant="article" />
+                </div>
+              );
+            if (block.type === "bulletList")
+              return <div key={block.id} className="mt-4"><CalloutRichTextPreview value={block.text.split("\n").filter(Boolean).map((item) => `- ${item.replace(/^[-*]\s*/, "")}`).join("\n")} variant="article" /></div>;
+            if (block.type === "orderedList")
+              return <div key={block.id} className="mt-4"><CalloutRichTextPreview value={block.text.split("\n").filter(Boolean).map((item, index) => `${index + 1}. ${item.replace(/^\d+\.\s*/, "")}`).join("\n")} variant="article" /></div>;
+            if (block.type === "quote")
+              return <blockquote key={block.id} className="my-6 border-l-4 border-[#8B5CF6] pl-5 text-lg font-semibold italic leading-8 text-[#475569]"><CalloutRichTextPreview value={block.text} variant="article" /></blockquote>;
+            if (block.type === "divider")
+              return <hr key={block.id} className="my-10 border-0 border-t-2 border-[#CBD5E1]" />;
             if (block.type === "callout")
               return (
-                <aside
-                  key={block.id}
-                  className={`mt-6 rounded-xl p-5 text-sm leading-7 ${calloutToneStyles[block.calloutTone ?? "yellow"]}`}
-                >
-                  {block.calloutTitle ? <p className="mb-2 font-extrabold">{block.calloutTitle}</p> : null}
+                <Callout key={block.id} type={block.calloutType} tone={block.calloutTone} title={block.calloutTitle}>
                   <CalloutRichTextPreview value={block.text} />
-                </aside>
+                </Callout>
               );
             if (block.type === "code")
               return (
-                <div
-                  key={block.id}
-                  className="mt-6 overflow-hidden rounded-xl border-2 border-[#1E293B] bg-[#111827]"
-                >
-                  <div className="flex items-center gap-2 border-b border-slate-600 bg-[#263246] px-4 py-3">
-                    <span className="h-3 w-3 rounded-full bg-[#FF5F57]" />
-                    <span className="h-3 w-3 rounded-full bg-[#FEBC2E]" />
-                    <span className="h-3 w-3 rounded-full bg-[#28C840]" />
-                    <span className="ml-2 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                      {block.language || "text"}
-                    </span>
-                  </div>
-                  <CodeBlockPreview
-                    value={block.text}
-                    language={block.language || "text"}
-                  />
-                </div>
+                <CodeBlock key={block.id}>
+                  <code className={`language-${block.language || "text"}`}>{block.text}</code>
+                </CodeBlock>
               );
             if (block.type === "image" && block.src)
-              return (
-                <figure key={block.id} className="mt-7">
-                  <img
-                    src={block.src}
-                    alt={block.alt || "Hình ảnh minh họa"}
-                    className="max-h-[560px] w-full rounded-xl border-2 border-[#1E293B] object-contain"
-                  />
-                  {block.caption || block.sourceName ? (
-                    <figcaption className="mt-2 text-center text-xs text-[#64748B]">
-                      {block.caption}
-                      {block.caption && block.sourceName ? " · " : ""}
-                      {block.sourceName ? `Nguồn: ${block.sourceName}` : ""}
-                    </figcaption>
-                  ) : null}
-                </figure>
-              );
+              return <Figure key={block.id} src={block.src} alt={block.alt} caption={block.caption} sourceName={block.sourceName} sourceUrl={block.sourceUrl} />;
             if (block.type === "imageGallery") {
               const images = (block.images ?? []).filter((image) => image.src);
               return images.length ? (
-                <div
+                <ImageGrid
                   key={block.id}
-                  className={`mt-7 grid items-start gap-3 ${galleryGridClass(block.layout)}`}
+                  layout={block.layout}
                 >
                   {images.map((image, imageIndex) => (
-                    <figure key={`${block.id}-${imageIndex}`}>
-                      <img
-                        src={image.src}
-                        alt={image.alt || "Hình ảnh minh họa"}
-                        className="aspect-[4/3] w-full rounded-xl border-2 border-[#1E293B] object-cover"
-                      />
-                      {image.caption || image.sourceName ? (
-                        <figcaption className="mt-2 text-center text-xs text-[#64748B]">
-                          {image.caption}
-                          {image.caption && image.sourceName ? " · " : ""}
-                          {image.sourceName ? `Nguồn: ${image.sourceName}` : ""}
-                        </figcaption>
-                      ) : null}
-                    </figure>
+                    <Figure key={`${block.id}-${imageIndex}`} {...image} />
                   ))}
-                </div>
+                </ImageGrid>
               ) : null;
             }
             return null;
@@ -434,6 +435,8 @@ export function PostBlockEditor({
   mode = "article",
   initialContent,
   onDirty,
+  toolbarVisible = true,
+  workspaceVisible = true,
 }: {
   showPreview: boolean;
   previewTitle: string;
@@ -441,6 +444,8 @@ export function PostBlockEditor({
   mode?: PostEditorMode;
   initialContent?: string;
   onDirty?: () => void;
+  toolbarVisible?: boolean;
+  workspaceVisible?: boolean;
 }) {
   const [blocks, setBlocks] = useState<EditorBlock[]>(() =>
     initialContent
@@ -513,6 +518,32 @@ export function PostBlockEditor({
       if (index < 0 || target < 0 || target >= current.length) return current;
       const next = [...current];
       [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  function duplicateBlock(id: string) {
+    changeBlocks((current) => {
+      const index = current.findIndex((block) => block.id === id);
+      if (index < 0) return current;
+      const source = current[index];
+      const duplicate: EditorBlock = {
+        ...source,
+        id: crypto.randomUUID(),
+        images: source.images?.map((image) => ({ ...image })),
+      };
+      const next = [...current];
+      next.splice(index + 1, 0, duplicate);
+      return next;
+    });
+  }
+
+  function insertParagraphAfter(id: string) {
+    changeBlocks((current) => {
+      const index = current.findIndex((block) => block.id === id);
+      if (index < 0) return current;
+      const next = [...current];
+      next.splice(index + 1, 0, createBlock("paragraph"));
       return next;
     });
   }
@@ -639,6 +670,24 @@ export function PostBlockEditor({
           </span>
           <button
             type="button"
+            onClick={() => insertParagraphAfter(block.id)}
+            className="rounded-md p-1.5 text-[#64748B] hover:bg-[#EDE9FE] hover:text-[#6D28D9]"
+            aria-label="Thêm đoạn văn bên dưới"
+            title="Thêm đoạn bên dưới"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => duplicateBlock(block.id)}
+            className="rounded-md p-1.5 text-[#64748B] hover:bg-[#F1F5F9]"
+            aria-label="Nhân bản khối"
+            title="Nhân bản khối"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
             onClick={() => moveBlock(block.id, -1)}
             disabled={index === 0}
             className="rounded-md p-1.5 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-30"
@@ -668,7 +717,7 @@ export function PostBlockEditor({
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
-        {block.type === "heading1" || block.type === "heading2" ? (
+        {block.type === "heading1" || block.type === "heading2" || block.type === "heading3" ? (
           <input
             value={block.text}
             onChange={(event) =>
@@ -676,7 +725,7 @@ export function PostBlockEditor({
             }
             maxLength={255}
             placeholder={
-              block.type === "heading1" ? "Tiêu đề chính" : "Tiêu đề phần"
+              block.type === "heading1" ? "Tiêu đề chính" : block.type === "heading2" ? "Tiêu đề phần" : "Tiêu đề phụ"
             }
             className="w-full rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 font-bold text-[#1E293B] outline-none focus:border-[#7C3AED]"
           />
@@ -692,6 +741,16 @@ export function PostBlockEditor({
             className="w-full resize-y rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 text-sm leading-6 text-[#334155] outline-none focus:border-[#7C3AED]"
           />
         ) : null}
+        {block.type === "bulletList" ? (
+          <textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} rows={4} placeholder={"Mỗi dòng là một mục\nMục tiếp theo"} className="w-full resize-y rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 text-sm leading-6 text-[#334155] outline-none focus:border-[#7C3AED]" />
+        ) : null}
+        {block.type === "orderedList" ? (
+          <textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} rows={4} placeholder={"Mỗi dòng là một mục có thứ tự\nMục tiếp theo"} className="w-full resize-y rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 text-sm leading-6 text-[#334155] outline-none focus:border-[#7C3AED]" />
+        ) : null}
+        {block.type === "quote" ? (
+          <textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} rows={3} placeholder="Nội dung trích dẫn" className="w-full resize-y rounded-lg border-2 border-[#CBD5E1] px-3 py-2.5 text-sm italic leading-6 text-[#334155] outline-none focus:border-[#7C3AED]" />
+        ) : null}
+        {block.type === "divider" ? <div className="py-4"><hr className="border-[#CBD5E1]" /></div> : null}
         {block.type === "code" ? (
           <div className="grid gap-3">
             <label className="grid max-w-xs gap-1 text-xs font-bold text-[#64748B]">
@@ -1062,23 +1121,27 @@ export function PostBlockEditor({
     "--editor-width": `${split}%`,
     "--preview-width": `${100 - split}%`,
   } as CSSProperties;
+  const serializedContent = serializeBlocks(blocks);
+  const wordCount = serializedContent.replace(/<[^>]+>|[#>*`_-]/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  const estimatedMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
   return (
     <section
       ref={workspaceRef}
       style={splitStyle}
-      className="relative flex min-h-0 flex-1 overflow-hidden border-t-2 border-[#1E293B] bg-[#F8FAFC]"
+      className={`${workspaceVisible ? "flex" : "hidden"} relative min-h-0 flex-1 overflow-hidden border-t-2 border-[#1E293B] bg-[#F8FAFC]`}
     >
       <input
         name="content"
         type="hidden"
-        value={serializeBlocks(blocks)}
+        value={serializedContent}
         readOnly
       />
       <div
         className={`${showPreview ? "hidden lg:block lg:w-[var(--editor-width)] lg:shrink-0" : "block flex-1"} min-h-0 overflow-y-auto px-4 py-6 pb-28 sm:px-8`}
       >
         <div className="mx-auto max-w-3xl space-y-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-[11px] font-bold text-[#64748B]" aria-live="polite"><span>{blocks.length} khối</span><span>{wordCount.toLocaleString("vi-VN")} từ</span><span>Khoảng {estimatedMinutes} phút đọc</span><span className="ml-auto">Ctrl/Cmd+S để lưu</span></div>
           {blocks.map(renderBlock)}
           {uploadError ? (
             <p
@@ -1117,7 +1180,7 @@ export function PostBlockEditor({
           </div>
         </>
       ) : null}
-      <div className="fixed bottom-5 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-2xl border-2 border-[#1E293B] bg-white p-2 shadow-[0_12px_0_rgba(30,41,59,0.16)]">
+      {toolbarVisible ? <div className="fixed bottom-5 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-2xl border-2 border-[#1E293B] bg-white p-2 shadow-[0_12px_0_rgba(30,41,59,0.16)]">
         {blockOptions.map(({ type, label, icon: Icon }) => (
           <button
             key={type}
@@ -1137,7 +1200,7 @@ export function PostBlockEditor({
           <ListPlus className="mr-1 inline h-3.5 w-3.5" />
           Thêm khối
         </span>
-      </div>
+      </div> : null}
     </section>
   );
 }

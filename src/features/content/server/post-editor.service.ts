@@ -11,6 +11,7 @@ import {
   findEditableDatabasePostBySlug,
   findPublishedDatabasePostBySlug,
   findPublishedDatabasePosts,
+  findRelatedPostCandidates,
   upsertDatabasePost,
   updateDatabasePost,
 } from "@/features/content/server/post.repository";
@@ -34,6 +35,10 @@ function normalizeSlug(value: string) {
     .slice(0, 180);
 }
 
+function localDateTimeValue(date: Date) {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 function parseTags(value: string) {
   const tags = [...new Set(value.split(",").map((tag) => tag.trim()).filter(Boolean))];
   if (tags.length > 8 || tags.some((tag) => tag.length > 50))
@@ -41,9 +46,28 @@ function parseTags(value: string) {
   return tags;
 }
 
+function normalizeCodeFenceLanguages(value: string) {
+  let insideCodeFence = false;
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => {
+      const fence = line.match(/^```([\w-]*)[ \t]*$/);
+      if (!fence) return line;
+      if (insideCodeFence) {
+        insideCodeFence = false;
+        return "```";
+      }
+      insideCodeFence = true;
+      return `\`\`\`${fence[1] || "text"}`;
+    })
+    .join("\n");
+}
+
 function validateControlledMdx(value: string) {
   const content = cleanText(value, "Nội dung", 80_000);
-  const withoutCodeFences = content.replace(/```[\s\S]*?```/g, "");
+  const normalizedContent = normalizeCodeFenceLanguages(content);
+  const withoutCodeFences = normalizedContent.replace(/```[\s\S]*?```/g, "");
   if (/^\s*(import|export)\s/m.test(withoutCodeFences) || /\{[^}]*\}/.test(withoutCodeFences))
     throw new Error("Nội dung không được chứa import, export hoặc biểu thức JavaScript.");
   const withoutSupportedComponents = withoutCodeFences.replace(
@@ -52,7 +76,7 @@ function validateControlledMdx(value: string) {
   );
   if (/<\/?[A-Za-z]/.test(withoutSupportedComponents))
     throw new Error("Nội dung chứa MDX component không được hỗ trợ.");
-  return content;
+  return normalizedContent;
 }
 
 function asPostSummary(post: Awaited<ReturnType<typeof findPublishedDatabasePosts>>[number]): PostSummary & { readerCount: number } {
@@ -72,6 +96,7 @@ function asPostSummary(post: Awaited<ReturnType<typeof findPublishedDatabasePost
     ...(post.cover_image ? { coverImage: post.cover_image } : {}),
     dateLabel: new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date),
     readerCount: post.view_count,
+    featured: post.featured,
   };
 }
 
@@ -91,6 +116,8 @@ export async function saveDatabasePost(input: {
   coverImage: string;
   badgeColor: string;
   intent: string;
+  scheduledAt?: string;
+  relatedSlugs: string;
 }) {
   const category = EDITOR_POST_CATEGORIES.find((item) => item === input.category);
   if (!category) throw new Error("Chuyên mục không hợp lệ.");
@@ -104,6 +131,11 @@ export async function saveDatabasePost(input: {
   if (coverImage && !/^https?:\/\//.test(coverImage))
     throw new Error("Ảnh cover phải là URL http hoặc https.");
 
+  let scheduledAt: Date | undefined;
+  if (input.intent === "schedule") {
+    scheduledAt = new Date(input.scheduledAt ?? "");
+    if (Number.isNaN(scheduledAt.getTime()) || scheduledAt <= new Date()) throw new Error("Thời điểm lên lịch phải ở trong tương lai.");
+  }
   const persistenceInput = {
     slug,
     title: cleanText(input.title, "Tiêu đề", 255),
@@ -117,8 +149,10 @@ export async function saveDatabasePost(input: {
     badgeColor,
     readingTimeInMinutes: readingTime,
     coverImage: coverImage || undefined,
-    status: input.intent === "publish" || input.intent === "save-published" ? "PUBLISHED" as const : "DRAFT" as const,
+    status: ["publish", "save-published", "schedule"].includes(input.intent) ? "PUBLISHED" as const : "DRAFT" as const,
+    publishedAt: input.intent === "schedule" ? scheduledAt : input.intent === "publish" ? new Date() : undefined,
     authorId: input.authorId,
+    relatedSlugs: [...new Set(input.relatedSlugs.split(",").map((slug) => normalizeSlug(slug)).filter(Boolean))].slice(0, 12),
   };
   return input.originalSlug
     ? updateDatabasePost(input.originalSlug, persistenceInput, input.restrictedAuthorId)
@@ -180,6 +214,7 @@ export async function saveDatabaseNews(input: {
   reportedAt: string;
   existingReportedAtLabel?: string;
   intent: string;
+  scheduledAt?: string;
 }) {
   const additionalTags = parseTags(input.tags);
   if (additionalTags.length > 5) throw new Error("Tin tức chỉ dùng tối đa 5 tags bổ sung.");
@@ -191,7 +226,7 @@ export async function saveDatabaseNews(input: {
     title: input.title,
     slug: input.slug,
     excerpt: input.excerpt,
-    content: buildNewsContent({ ...input, requireSource: input.intent === "publish" }),
+    content: buildNewsContent({ ...input, requireSource: input.intent === "publish" || input.intent === "schedule" }),
     category: "Khám phá",
     tags,
     authorName: input.authorName,
@@ -200,6 +235,8 @@ export async function saveDatabaseNews(input: {
     coverImage: input.coverImage,
     badgeColor: "pink",
     intent: input.intent,
+    scheduledAt: input.scheduledAt,
+    relatedSlugs: "",
   });
 }
 
@@ -242,6 +279,8 @@ export async function getAdminEditablePost(slug: string, kind: "article" | "news
     coverImage: post.cover_image || "",
     badgeColor: post.badge_color,
     status: post.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+    relatedSlugs: post.related_posts.map((item) => item.related_post.slug),
+    ...(post.published_at && post.published_at > new Date() ? { scheduledAt: localDateTimeValue(post.published_at) } : {}),
   };
   if (kind === "article") return base;
   const metadata = splitNewsMetadata(post.content_mdx);
@@ -273,3 +312,4 @@ export const getDatabasePostBySlug = cache(async (slug: string) => {
 
 export const getAdminPostList = findAdminPosts;
 export const getAdminNewsList = findAdminNewsPosts;
+export const getRelatedPostCandidates = findRelatedPostCandidates;

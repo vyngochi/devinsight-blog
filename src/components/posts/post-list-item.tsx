@@ -4,16 +4,15 @@ import { ArrowRight, Clock, Eye } from "lucide-react";
 import type { PostListItem as PostListItemData } from "@/features/content/server/post-listing.service";
 
 const numberFormat = new Intl.NumberFormat("vi-VN");
-const fallbackCover = "/images/posts/devinsight-cover-fallback.png";
+const fallbackCover = "/images/posts/devinsight-cover-fallback.webp";
 
 export function PostListItem({ post }: { post: PostListItemData }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#CBD5E1] bg-white transition-colors hover:border-[#A78BFA]">
       <Link
         href={`/posts/${post.slug}`}
-        className="relative block aspect-[16/9] overflow-hidden bg-[#EDE9FE] bg-cover bg-center"
+        className="relative block aspect-[16/9] overflow-hidden bg-[#EDE9FE]"
         aria-label={`Đọc bài: ${post.title}`}
-        style={{ backgroundImage: `url("${post.coverImage ?? fallbackCover}")` }}
       >
         <Image
           src={post.coverImage ?? fallbackCover}

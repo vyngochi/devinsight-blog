@@ -24,6 +24,17 @@ function readDraft(storageKey: string) {
   }
 }
 
+function readHistory(storageKey: string) {
+  try {
+    const value = window.localStorage.getItem(`${storageKey}:history`);
+    if (!value) return [];
+    const parsed = JSON.parse(value) as LocalEditorDraft[];
+    return Array.isArray(parsed) ? parsed.filter((item) => item?.fields && typeof item.savedAt === "number").slice(0, 10) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function useLocalEditorDraft({
   storageKey,
   formRef,
@@ -39,10 +50,12 @@ export function useLocalEditorDraft({
     null,
   );
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<number | null>(null);
+  const [draftHistory, setDraftHistory] = useState<LocalEditorDraft[]>([]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setRecoveryDraft(readDraft(storageKey));
+      setDraftHistory(readHistory(storageKey));
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [storageKey]);
@@ -61,6 +74,14 @@ export function useLocalEditorDraft({
         storageKey,
         JSON.stringify({ fields, savedAt } satisfies LocalEditorDraft),
       );
+      setDraftHistory((current) => {
+        const snapshot = { fields, savedAt } satisfies LocalEditorDraft;
+        const previous = current[0];
+        const unchanged = previous && JSON.stringify(previous.fields) === JSON.stringify(fields);
+        const next = unchanged ? current : [snapshot, ...current].slice(0, 10);
+        window.localStorage.setItem(`${storageKey}:history`, JSON.stringify(next));
+        return next;
+      });
       setLastAutoSavedAt(savedAt);
     }, 1200);
     return () => window.clearTimeout(timeout);
@@ -87,5 +108,6 @@ export function useLocalEditorDraft({
     clearLocalDraft,
     dismissRecovery,
     acceptRecovery,
+    draftHistory,
   };
 }

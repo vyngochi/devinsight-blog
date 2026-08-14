@@ -1,9 +1,5 @@
-import Loader from "@/components/ui/loader";
+import { BlogHomeLoading } from "@/components/ui/page-loading-skeletons";
 
 export default function Loading() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loader />
-    </div>
-  );
+  return <BlogHomeLoading />;
 }

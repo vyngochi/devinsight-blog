@@ -4,7 +4,7 @@ import { ArrowRight, Clock, Star, Eye } from "lucide-react";
 import type { PostListItem } from "@/features/content/server/post-listing.service";
 import { Badge } from "@/components/ui/button";
 
-const fallbackCover = "/images/posts/devinsight-cover-fallback.png";
+const fallbackCover = "/images/posts/devinsight-cover-fallback.webp";
 
 export function HeroPosts({ posts }: { posts: PostListItem[] }) {
   // Ưu tiên bài viết featured, nếu không đủ thì lấy các bài mới nhất

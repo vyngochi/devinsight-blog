@@ -8,9 +8,11 @@ import { DatabaseMdxContent } from "@/components/mdx/database-mdx-content";
 import { TableOfContents } from "@/components/posts/table-of-contents";
 import { JsonLd } from "@/components/seo/json-ld";
 import { absoluteUrl, siteName } from "@/config/site";
-import { getPostBySlug } from "@/features/content/post-registry";
 import { getDatabasePostBySlug } from "@/features/content/server/post-editor.service";
-import { findPublishedPostViewCounts } from "@/features/content/server/post-listing.repository";
+import { auth } from "@/auth";
+import { findPostEngagement } from "@/features/content/server/post-engagement.repository";
+import { PostEngagement } from "@/features/content/components/post-engagement";
+import { RelatedPosts } from "@/features/content/components/related-posts";
 
 type PostPageProps = { params: Promise<{ slug: string }> };
 
@@ -33,13 +35,7 @@ type ArticleData = {
 const getArticle = cache(async (slug: string) => {
   const databasePost = await getDatabasePostBySlug(slug);
   if (databasePost) return { data: databasePost as ArticleData, content: databasePost.content };
-  const legacyPost = getPostBySlug(slug);
-  if (!legacyPost) return null;
-  const viewCounts = await findPublishedPostViewCounts([slug]);
-  return {
-    data: { ...legacyPost.metadata, readerCount: viewCounts.get(slug) ?? 0 } as ArticleData,
-    content: legacyPost.default,
-  };
+  return null;
 });
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
@@ -60,8 +56,11 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  const article = await getArticle((await params).slug);
+  const slug = (await params).slug;
+  const [article, session] = await Promise.all([getArticle(slug), auth()]);
   if (!article) notFound();
+  const engagement = await findPostEngagement(slug, session?.user?.id);
+  if (!engagement) notFound();
   const { data, content } = article;
   const updatedAt = data.updatedAt ?? data.publishedAt;
   const dateLabel = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${data.publishedAt}T00:00:00`));
@@ -118,15 +117,29 @@ export default async function PostPage({ params }: PostPageProps) {
           </header>
           <ViewTracker slug={data.slug} />
           <div id="article-content" className="py-10 max-w-none">
-            {typeof content === "string" ? (
-              <DatabaseMdxContent source={content} />
-            ) : (
-              (() => {
-                const LegacyContent = content;
-                return <LegacyContent />;
-              })()
-            )}
+            <DatabaseMdxContent source={content} />
           </div>
+          <PostEngagement
+            slug={data.slug}
+            signedIn={Boolean(session?.user?.id)}
+            initialLiked={engagement.post_likes ? engagement.post_likes.length > 0 : false}
+            initialLikeCount={engagement.like_count}
+            comments={engagement.comments.map((comment) => ({
+              id: comment.id,
+              content: comment.content,
+              parentId: comment.parent_id,
+              createdAt: comment.created_at.toISOString(),
+              user: comment.user,
+            }))}
+          />
+          <RelatedPosts posts={engagement.related_posts.map(({ related_post: post }) => ({
+            slug: post.slug,
+            title: post.title,
+            excerpt: post.excerpt,
+            coverImage: post.cover_image,
+            readingTime: post.reading_time_min,
+            category: post.categories.name,
+          }))} />
         </div>
 
         <aside className="hidden lg:block relative h-full">

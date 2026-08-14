@@ -1,9 +1,5 @@
-import Loader from "@/components/ui/loader";
+import { ListingLoading } from "@/components/ui/page-loading-skeletons";
 
 export default function Loading() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loader />
-    </div>
-  );
+  return <ListingLoading label="Đang tải thảo luận cộng đồng" />;
 }
